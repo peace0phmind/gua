@@ -436,6 +436,57 @@ typedef struct gua_config
 } gua_config;
 
 /**
+ * Max ports in the conference bridge. This setting is the default value
+ * for pjsua_media_config.max_media_ports.
+ */
+#ifndef GUA_MAX_CONF_PORTS
+#   define GUA_MAX_CONF_PORTS		254
+#endif
+
+/**
+ * The default clock rate to be used by the conference bridge. This setting
+ * is the default value for pjsua_media_config.clock_rate.
+ */
+#ifndef GUA_DEFAULT_CLOCK_RATE
+#   define GUA_DEFAULT_CLOCK_RATE	16000
+#endif
+
+/**
+ * Default frame length in the conference bridge. This setting
+ * is the default value for pjsua_media_config.audio_frame_ptime.
+ */
+#ifndef GUA_DEFAULT_AUDIO_FRAME_PTIME
+#   define GUA_DEFAULT_AUDIO_FRAME_PTIME  20
+#endif
+
+
+/**
+ * Default codec quality settings. This setting is the default value
+ * for pjsua_media_config.quality.
+ */
+#ifndef GUA_DEFAULT_CODEC_QUALITY
+#   define GUA_DEFAULT_CODEC_QUALITY	8
+#endif
+
+/**
+ * Default iLBC mode. This setting is the default value for 
+ * pjsua_media_config.ilbc_mode.
+ */
+#ifndef GUA_DEFAULT_ILBC_MODE
+#   define GUA_DEFAULT_ILBC_MODE	30
+#endif
+
+/**
+ * The default echo canceller tail length. This setting
+ * is the default value for pjsua_media_config.ec_tail_len.
+ */
+#ifndef GUA_DEFAULT_EC_TAIL_LEN
+#   define GUA_DEFAULT_EC_TAIL_LEN	200
+#endif
+
+
+
+/**
  * Logging configuration, which can be (optionally) specified when calling
  * #gua_init(). Application must call #gua_logging_config_default() to
  * initialize this structure with the default values.

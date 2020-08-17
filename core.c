@@ -181,6 +181,49 @@ PJ_DEF(void) gua_config_default(gua_config *cfg)
     // pjsua_srtp_opt_default(&cfg->srtp_opt);
 }
 
+PJ_DEF(void) gua_media_config_default(gua_media_config *cfg)
+{
+    const pj_sys_info *si = pj_get_sys_info();
+    pj_str_t dev_model = {"gua", 3};
+    
+    pj_bzero(cfg, sizeof(*cfg));
+
+    cfg->clock_rate = GUA_DEFAULT_CLOCK_RATE;
+    /* It is reported that there may be some media server resampling problem
+     * with iPhone 5 devices running iOS 7, so we set the sound device's
+     * clock rate to 44100 to avoid resampling.
+     */
+    if (pj_stristr(&si->machine, &dev_model) &&
+        ((si->os_ver & 0xFF000000) >> 24) >= 7)
+    {
+        cfg->snd_clock_rate = 44100;
+    } else {
+        cfg->snd_clock_rate = 0;
+    }
+    cfg->channel_count = 1;
+    cfg->audio_frame_ptime = GUA_DEFAULT_AUDIO_FRAME_PTIME;
+    cfg->max_media_ports = GUA_MAX_CONF_PORTS;
+    cfg->has_ioqueue = PJ_TRUE;
+    cfg->thread_cnt = 1;
+    cfg->quality = GUA_DEFAULT_CODEC_QUALITY;
+    cfg->ilbc_mode = GUA_DEFAULT_ILBC_MODE;
+    cfg->ec_tail_len = GUA_DEFAULT_EC_TAIL_LEN;
+    cfg->snd_rec_latency = PJMEDIA_SND_DEFAULT_REC_LATENCY;
+    cfg->snd_play_latency = PJMEDIA_SND_DEFAULT_PLAY_LATENCY;
+    cfg->jb_init = cfg->jb_min_pre = cfg->jb_max_pre = cfg->jb_max = -1;
+    cfg->snd_auto_close_time = 1;
+
+    cfg->ice_max_host_cands = -1;
+    cfg->ice_always_update = PJ_TRUE;
+    pj_ice_sess_options_default(&cfg->ice_opt);
+
+    cfg->turn_conn_type = PJ_TURN_TP_UDP;
+#if PJ_HAS_SSL_SOCK
+    pj_turn_sock_tls_cfg_default(&cfg->turn_tls_setting);
+#endif
+    cfg->vid_preview_enable_native = PJ_TRUE;
+}
+
 /*
  * Initialize gua with the specified settings. All the settings are 
  * optional, and the default values will be used when the config is not
@@ -206,10 +249,10 @@ PJ_DEF(pj_status_t) pjsua_init( const gua_config *ua_cfg,
 	    ua_cfg = &default_cfg;
     }
 
-//     if (media_cfg == NULL) {
-// 	pjsua_media_config_default(&default_media_cfg);
-// 	media_cfg = &default_media_cfg;
-//     }
+    if (media_cfg == NULL) {
+	    gua_media_config_default(&default_media_cfg);
+	    media_cfg = &default_media_cfg;
+    }
 
 //     /* Initialize logging first so that info/errors can be captured */
 //     if (log_cfg) {
