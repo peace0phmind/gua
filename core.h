@@ -6,7 +6,9 @@
 PJ_BEGIN_DECL
 
 
-PJ_DECL(pj_status_t) gua_create(gua_content *guaCtx);
+PJ_DEF(pj_status_t) gua_create(gua_content *guaCtx);
+
+PJ_DEF(pj_status_t) gua_destroy(gua_content *guaCtx);
 
 PJ_END_DECL
 

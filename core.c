@@ -1,6 +1,6 @@
 #include "gua.h"
 
-#define THIS_FILE "core.c"
+#define THIS_FILE "gua_core.c"
 
 static void init_data(gua_content *guaCtx) {
     pj_bzero(guaCtx, sizeof(gua_content));
@@ -76,7 +76,7 @@ void gua_set_state(gua_content *guaCtx, gua_state new_state)
 }
 
 
-PJ_DECL(pj_status_t) gua_create(gua_content *guaCtx) {
+PJ_DEF(pj_status_t) gua_create(gua_content *guaCtx) {
     pj_status_t status;
 
     /* Init gua data */
