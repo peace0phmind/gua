@@ -1,13 +1,17 @@
 package gua
 
 /*
-#include "core.h"
+#include "pjsua.h"
 
 */
 import "C"
 
+import (
+	"errors"
+	"fmt"
+)
+
 type GuaContext struct {
-	ctx C.struct_gua_content
 }
 
 func NewGuaContext() *GuaContext {
@@ -16,11 +20,17 @@ func NewGuaContext() *GuaContext {
 }
 
 func (gc *GuaContext) Create() error {
-	C.gua_create(&gc.ctx)
+	if ret := C.pjsua_create(); ret != C.PJ_SUCCESS {
+		return errors.New(fmt.Sprintf("Create sua error: %d", ret))
+	}
+
 	return nil
 }
 
 func (gc *GuaContext) Destroy() error {
-	C.gua_destroy(&gc.ctx)
+	if ret := C.pjsua_destroy(); ret != C.PJ_SUCCESS {
+		return errors.New(fmt.Sprintf("Destroy sua error: %d", ret))
+	}
+
 	return nil
 }
