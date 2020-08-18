@@ -431,8 +431,6 @@ PJ_DEF(pj_status_t) pjsua_acc_add(pjsua_acc_config *cfg,
     unsigned i, id;
     pj_status_t status = PJ_SUCCESS;
 
-	PJ_LOG(1, (THIS_FILE, "pjsua_acc_add"));
-
     PJ_ASSERT_RETURN(cfg, PJ_EINVAL);
     PJ_ASSERT_RETURN(pjsua_var.acc_cnt < PJ_ARRAY_SIZE(pjsua_var.acc),
 		     PJ_ETOOMANY);
