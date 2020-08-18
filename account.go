@@ -9,6 +9,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"unsafe"
 )
 
 type accountConfig struct {
@@ -57,7 +58,7 @@ func (af *accountConfig) AddAuthCred(aci *authCredInfo) {
 
 func (af *accountConfig) Free() {
 	if af.accCfg != nil {
-		C.free(af.accCfg)
+		C.free(unsafe.Pointer(af.accCfg))
 		af.accCfg = nil
 	}
 }
