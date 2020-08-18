@@ -62,7 +62,12 @@ func NewAccount() *account {
 }
 
 func (ac *account) Create(af *accountConfig, makeDefault bool) error {
-	if ret := C.pjsua_acc_add(&af.accCfg, makeDefault, &ac.id); ret != C.PJ_SUCCESS {
+	iMakeDefault := 0
+	if makeDefault {
+		iMakeDefault = 1
+	}
+
+	if ret := C.pjsua_acc_add(&af.accCfg, C.int(iMakeDefault), &ac.id); ret != C.PJ_SUCCESS {
 		return errors.New(fmt.Sprintf("Create account error: %d", ret))
 	}
 
