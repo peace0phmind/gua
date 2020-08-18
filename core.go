@@ -67,6 +67,7 @@ func NewConfig() *config {
 	c := &config{}
 
 	c.c = (*C.struct_pjsua_config)(C.malloc(C.sizeof_struct_pjsua_config))
+	C.pjsua_config_default(c.c)
 
 	return c
 }
@@ -87,6 +88,7 @@ func NewLogConfig() *logConfig {
 	lc := &logConfig{}
 
 	lc.lc = (*C.struct_pjsua_logging_config)(C.malloc(C.sizeof_struct_pjsua_logging_config))
+	C.pjsua_logging_config_default(lc.lc)
 
 	return lc
 }
@@ -111,6 +113,7 @@ func NewMediaConfig() *mediaConfig {
 	mc := &mediaConfig{}
 
 	mc.mc = (*C.struct_pjsua_media_config)(C.malloc(C.sizeof_struct_pjsua_media_config))
+	C.pjsua_media_config_default(mc.mc)
 
 	return mc
 }
