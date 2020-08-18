@@ -6,7 +6,7 @@ package gua
 #cgo CPPFLAGS: -DPJ_AUTOCONF=1 -O2 -DPJ_IS_BIG_ENDIAN=0
 #cgo CPPFLAGS: -DPJ_IS_LITTLE_ENDIAN=1
 #cgo CPPFLAGS: -DPJMEDIA_USE_OLD_FFMPEG=1
-#cgo CPPFLAGS: -I/usr/local/include -I/usr/include
+#cgo CPPFLAGS: -I./i -I/usr/local/include -I/usr/include
 #cgo CPPFLAGS: -I/usr/include/c++/9 -I/usr/include/x86_64-linux-gnu/c++/9
 #cgo LDFLAGS: -L/usr/local/lib -L/usr/lib
 #cgo LDFLAGS: -lpjsip-ua-x86_64-unknown-linux-gnu

@@ -17,8 +17,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
  */
-#include <pjsua-lib/pjsua.h>
-#include <pjsua-lib/pjsua_internal.h>
+#include "i/pjsua.h"
+#include "i/pjsua_internal.h"
 
 
 #define THIS_FILE		"pjsua_acc.c"
@@ -423,13 +423,15 @@ static pj_status_t initialize_acc(unsigned acc_id)
 /*
  * Add a new account to pjsua.
  */
-PJ_DEF(pj_status_t) pjsua_acc_add( const pjsua_acc_config *cfg,
+PJ_DEF(pj_status_t) pjsua_acc_add(pjsua_acc_config *cfg,
 				   pj_bool_t is_default,
 				   pjsua_acc_id *p_acc_id)
 {
     pjsua_acc *acc;
     unsigned i, id;
     pj_status_t status = PJ_SUCCESS;
+
+	PJ_LOG(1, (THIS_FILE, "pjsua_acc_add"));
 
     PJ_ASSERT_RETURN(cfg, PJ_EINVAL);
     PJ_ASSERT_RETURN(pjsua_var.acc_cnt < PJ_ARRAY_SIZE(pjsua_var.acc),

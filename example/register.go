@@ -41,13 +41,8 @@ func main() {
 		fmt.Print(ci.String())
 	}
 
-	// accountConfig := pjsua2.NewAccountConfig()
-	// cred := gua.NewAuthCredInfo("digest", "*", "test1", 0, "test1")
-	// accountConfig.GetSipConfig().GetAuthCreds().Add(cred)
-
-	// sipAccount.Create(accountConfig)
-
 	accountConfig := gua.NewAccountConfig()
+	defer accountConfig.Free()
 	accountConfig.SetIdUri("sip:34020000002060000001@32010100")
 	accountConfig.SetRegistrarUri("sip:58.213.90.194:5061")
 	accountConfig.SetRegistrarTimeoutSecond(3600)

@@ -4291,7 +4291,7 @@ PJ_DECL(pjsua_acc_id) pjsua_acc_get_default(void);
  *
  * @return		PJ_SUCCESS on success, or the appropriate error code.
  */
-PJ_DECL(pj_status_t) pjsua_acc_add(const pjsua_acc_config *acc_cfg,
+PJ_DECL(pj_status_t) pjsua_acc_add(pjsua_acc_config *acc_cfg,
 				   pj_bool_t is_default,
 				   pjsua_acc_id *p_acc_id);
 

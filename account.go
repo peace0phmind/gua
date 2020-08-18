@@ -1,7 +1,7 @@
 package gua
 
 /*
-#include "pjsua.h"
+#include "i/pjsua.h"
 
 
 */
@@ -12,13 +12,15 @@ import (
 )
 
 type accountConfig struct {
-	accCfg C.pjsua_acc_config
+	accCfg *C.struct_pjsua_acc_config
 }
 
 func NewAccountConfig() *accountConfig {
 	accCfg := accountConfig{}
 
-	C.pjsua_acc_config_default(&accCfg.accCfg)
+	accCfg.accCfg = (*C.struct_pjsua_acc_config)(C.malloc(C.sizeof_struct_pjsua_acc_config))
+
+	C.pjsua_acc_config_default(accCfg.accCfg)
 
 	return &accCfg
 }
@@ -53,6 +55,13 @@ func (af *accountConfig) AddAuthCred(aci *authCredInfo) {
 	af.accCfg.cred_count = count + 1
 }
 
+func (af *accountConfig) Free() {
+	if af.accCfg != nil {
+		C.free(af.accCfg)
+		af.accCfg = nil
+	}
+}
+
 type account struct {
 	id C.pjsua_acc_id
 }
@@ -67,7 +76,7 @@ func (ac *account) Create(af *accountConfig, makeDefault bool) error {
 		iMakeDefault = 1
 	}
 
-	if ret := C.pjsua_acc_add(&af.accCfg, C.int(iMakeDefault), &ac.id); ret != C.PJ_SUCCESS {
+	if ret := C.pjsua_acc_add(af.accCfg, C.int(iMakeDefault), &ac.id); ret != C.PJ_SUCCESS {
 		return errors.New(fmt.Sprintf("Create account error: %d", ret))
 	}
 
