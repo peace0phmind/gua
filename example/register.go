@@ -22,7 +22,10 @@ func main() {
 		fatal(err)
 	}
 
-	if err := guaCtx.Init(); err != nil {
+	lc := gua.NewLogConfig()
+	lc.SetLevel(4)
+
+	if err := guaCtx.Init(nil, lc, nil); err != nil {
 		fatal(err)
 	}
 

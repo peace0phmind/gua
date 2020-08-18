@@ -58,6 +58,72 @@ var (
 	threadMutex sync.Mutex
 )
 
+/****************************config*******************************/
+type config struct {
+	c *C.struct_pjsua_config
+}
+
+func NewConfig() *config {
+	c := &config{}
+
+	c.c = (*C.struct_pjsua_config)(C.malloc(C.sizeof_struct_pjsua_config))
+
+	return c
+}
+
+func (c *config) Free() {
+	if c.c != nil {
+		C.free(unsafe.Pointer(c.c))
+		c.c = nil
+	}
+}
+
+/****************************log config*******************************/
+type logConfig struct {
+	lc *C.struct_pjsua_logging_config
+}
+
+func NewLogConfig() *logConfig {
+	lc := &logConfig{}
+
+	lc.lc = (*C.struct_pjsua_logging_config)(C.malloc(C.sizeof_struct_pjsua_logging_config))
+
+	return lc
+}
+
+func (lc *logConfig) SetLevel(level int) {
+	lc.lc.level = C.uint(level)
+}
+
+func (lc *logConfig) Free() {
+	if lc.lc != nil {
+		C.free(unsafe.Pointer(lc.lc))
+		lc.lc = nil
+	}
+}
+
+/****************************media config*******************************/
+type mediaConfig struct {
+	mc *C.struct_pjsua_media_config
+}
+
+func NewMediaConfig() *mediaConfig {
+	mc := &mediaConfig{}
+
+	mc.mc = (*C.struct_pjsua_media_config)(C.malloc(C.sizeof_struct_pjsua_media_config))
+
+	return mc
+}
+
+func (mc *mediaConfig) Free() {
+	if mc.mc != nil {
+		C.free(unsafe.Pointer(mc.mc))
+		mc.mc = nil
+	}
+}
+
+/****************************GuaContext*******************************/
+
 type GuaContext struct {
 	tid C.pjsua_transport_id
 }
@@ -76,8 +142,24 @@ func (gc *GuaContext) Create() error {
 	return nil
 }
 
-func (gc *GuaContext) Init() error {
-	if ret := C.pjsua_init(nil, nil, nil); ret != C.PJ_SUCCESS {
+func (gc *GuaContext) Init(c *config, lc *logConfig, mc *mediaConfig) error {
+	var param_c *C.struct_pjsua_config = nil
+	var param_lc *C.struct_pjsua_logging_config = nil
+	var param_mc *C.struct_pjsua_media_config = nil
+
+	if c != nil {
+		param_c = c.c
+	}
+
+	if lc != nil {
+		param_lc = lc.lc
+	}
+
+	if mc != nil {
+		param_mc = mc.mc
+	}
+
+	if ret := C.pjsua_init(param_c, param_lc, param_mc); ret != C.PJ_SUCCESS {
 		return errors.New(fmt.Sprintf("Init sua error: %d", ret))
 	}
 
