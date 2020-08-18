@@ -64,21 +64,8 @@ type GuaContext struct {
 
 type codecInfo C.struct_pjsua_codec_info
 
-type pjStr struct {
-	str *C.pj_str_t
-}
-
-func toPjStr(str *C.pj_str_t) *pjStr {
-	return &pjStr{str: str}
-}
-
-func (s *pjStr) String() string {
-	return C.GoStringN(s.str.ptr, C.int(s.str.slen))
-}
-
 func NewGuaContext() *GuaContext {
-	guaContext := GuaContext{}
-	return &guaContext
+	return &GuaContext{}
 }
 
 func (gc *GuaContext) Create() error {
@@ -164,7 +151,7 @@ func (gc *GuaContext) CodecInfoIterator() <-chan codecInfo {
 }
 
 func (ci *codecInfo) String() string {
-	return fmt.Sprintf("Codec - %s (priority: %d)\n", toPjStr(&ci.codec_id), ci.priority)
+	return fmt.Sprintf("Codec - %s (priority: %d)\n", pj2Str(&ci.codec_id), ci.priority)
 }
 
 type transportConfig struct {

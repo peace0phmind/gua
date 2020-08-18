@@ -39,6 +39,18 @@ func main() {
 		fmt.Print(ci.String())
 	}
 
+	// accountConfig := pjsua2.NewAccountConfig()
+	// accountConfig.SetIdUri("sip:34020000002060000001@32010100")
+	// accountConfig.GetRegConfig().SetRegistrarUri("sip:58.213.90.194:5061")
+	// accountConfig.GetRegConfig().SetTimeoutSec(3600)
+	// cred := pjsua2.NewAuthCredInfo("digest", "*", "test1", 0, "test1")
+	// accountConfig.GetSipConfig().GetAuthCreds().Add(cred)
+
+	// sipAccount.Create(accountConfig)
+
+	accountConfig := gua.NewAccountConfig()
+	accountConfig.SetIdUri("sip:34020000002060000001@32010100")
+
 	if err := guaCtx.Destroy(); err != nil {
 		fatal(err)
 	}
