@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
 	"runtime/debug"
 
 	"github.com/peace0phmind/gua"
@@ -40,16 +42,27 @@ func main() {
 	}
 
 	// accountConfig := pjsua2.NewAccountConfig()
-	// accountConfig.SetIdUri("sip:34020000002060000001@32010100")
-	// accountConfig.GetRegConfig().SetRegistrarUri("sip:58.213.90.194:5061")
-	// accountConfig.GetRegConfig().SetTimeoutSec(3600)
-	// cred := pjsua2.NewAuthCredInfo("digest", "*", "test1", 0, "test1")
+	// cred := gua.NewAuthCredInfo("digest", "*", "test1", 0, "test1")
 	// accountConfig.GetSipConfig().GetAuthCreds().Add(cred)
 
 	// sipAccount.Create(accountConfig)
 
 	accountConfig := gua.NewAccountConfig()
 	accountConfig.SetIdUri("sip:34020000002060000001@32010100")
+	accountConfig.SetRegistrarUri("sip:58.213.90.194:5061")
+	accountConfig.SetRegistrarTimeoutSecond(3600)
+	cred := gua.NewAuthCredInfo("digest", "*", "test1", 0, "test1")
+	accountConfig.AddAuthCred(cred)
+
+	account := gua.NewAccount()
+	if err := account.Create(accountConfig, false); err != nil {
+		fatal(err)
+	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
+	<-c
 
 	if err := guaCtx.Destroy(); err != nil {
 		fatal(err)
