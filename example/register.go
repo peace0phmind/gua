@@ -23,7 +23,10 @@ func main() {
 		fatal(err)
 	}
 
-	if err := guaCtx.TransportCreate(gua.PJSIP_TRANSPORT_UDP, nil); err != nil {
+	tc := gua.NewTransportConfig()
+	tc.SetPort(5060)
+
+	if err := guaCtx.TransportCreate(gua.PJSIP_TRANSPORT_UDP, tc); err != nil {
 		fatal(err)
 	}
 
