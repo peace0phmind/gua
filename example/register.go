@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"runtime/debug"
 
@@ -28,6 +29,14 @@ func main() {
 
 	if err := guaCtx.TransportCreate(gua.PJSIP_TRANSPORT_UDP, tc); err != nil {
 		fatal(err)
+	}
+
+	if err := guaCtx.Start(); err != nil {
+		fatal(err)
+	}
+
+	for ci := range guaCtx.CodecInfoIterator() {
+		fmt.Print(ci.String())
 	}
 
 	if err := guaCtx.Destroy(); err != nil {
