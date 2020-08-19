@@ -15,9 +15,23 @@ func fatal(err error) {
 	log.Fatal(err)
 }
 
-func main() {
-	guaCtx := gua.NewGuaContext()
+type ServiceCallback struct{}
 
+func NewServiceCallback() *ServiceCallback {
+	return &ServiceCallback{}
+}
+
+func (sc *ServiceCallback) OnRegStarted(acc *gua.Account, accId gua.AccountId, renew bool) {
+	fmt.Println("****************** on reg started**********************")
+}
+
+func (sc *ServiceCallback) OnRegState2(acc *gua.Account, accId gua.AccountId, info *gua.RegInfo) {
+	fmt.Println("****************** on reg state2**********************")
+	fmt.Print(acc.GetInfo())
+}
+
+func main() {
+	guaCtx := gua.NewGuaContext(NewServiceCallback())
 	if err := guaCtx.Create(); err != nil {
 		fatal(err)
 	}
@@ -52,7 +66,7 @@ func main() {
 	cred := gua.NewAuthCredInfo("digest", "*", "test1", 0, "test1")
 	accountConfig.AddAuthCred(cred)
 
-	account := gua.NewAccount()
+	account := guaCtx.NewAccount()
 	if err := account.Create(accountConfig, false); err != nil {
 		fatal(err)
 	}

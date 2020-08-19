@@ -63,15 +63,18 @@ func (af *accountConfig) Free() {
 	}
 }
 
-type account struct {
+type AccountId C.pjsua_acc_id
+
+type Account struct {
 	id C.pjsua_acc_id
+	gc *GuaContext
 }
 
-func NewAccount() *account {
-	return &account{}
+func (gc *GuaContext) NewAccount() *Account {
+	return &Account{gc: gc}
 }
 
-func (ac *account) Create(af *accountConfig, makeDefault bool) error {
+func (ac *Account) Create(af *accountConfig, makeDefault bool) error {
 	iMakeDefault := 0
 	if makeDefault {
 		iMakeDefault = 1
@@ -86,22 +89,102 @@ func (ac *account) Create(af *accountConfig, makeDefault bool) error {
 	return nil
 }
 
-func (ac *account) IsValid() bool {
+func (ac *Account) IsValid() bool {
 	return C.pjsua_acc_is_valid(ac.id) != 0
 }
 
-func (ac *account) SetDefault() {
+func (ac *Account) SetDefault() {
 	C.pjsua_acc_set_default(ac.id)
 }
 
-func (ac *account) IsDefault() bool {
+func (ac *Account) IsDefault() bool {
 	return C.pjsua_acc_get_default() == ac.id
 }
 
-func (ac *account) Shutdown() {
+func (ac *Account) Shutdown() {
 	if ac.IsValid() && C.pjsua_get_state() < C.PJSUA_STATE_CLOSING {
 		C.pjsua_acc_del(ac.id)
 	}
+}
+
+type StatusCode C.enum_pjsip_status_code
+
+type AccountInfo struct {
+	isDefault       bool
+	uri             string
+	regIsConfigured bool
+
+	regIsActive   bool
+	regExpiresSec int
+	regStatus     StatusCode
+	regStatusText string
+	regLastErr    int
+
+	onlineStatus     bool
+	onlineStatusText string
+}
+
+func (ai *AccountInfo) IsDefault() bool {
+	return ai.isDefault
+}
+
+func (ai *AccountInfo) Uri() string {
+	return ai.uri
+}
+
+func (ai *AccountInfo) RegIsConfigured() bool {
+	return ai.regIsConfigured
+}
+
+func (ai *AccountInfo) RegIsActive() bool {
+	return ai.regIsActive
+}
+
+func (ai *AccountInfo) RegExpiresSec() int {
+	return ai.regExpiresSec
+}
+
+func (ai *AccountInfo) RegStatus() StatusCode {
+	return ai.regStatus
+}
+
+func (ai *AccountInfo) RegStatusText() string {
+	return ai.regStatusText
+}
+
+func (ai *AccountInfo) RegLastErr() int {
+	return ai.regLastErr
+}
+
+func (ai *AccountInfo) OnlineStatus() bool {
+	return ai.onlineStatus
+}
+
+func (ai *AccountInfo) OnlineStatusText() string {
+	return ai.onlineStatusText
+}
+
+func (ac *Account) GetInfo() (*AccountInfo, error) {
+	pai := &C.struct_pjsua_acc_info{}
+
+	if ret := C.pjsua_acc_get_info(ac.id, pai); ret != C.PJ_SUCCESS {
+		return nil, errors.New(fmt.Sprintf("account get info error: %d", ret))
+	}
+
+	ai := &AccountInfo{}
+
+	ai.isDefault = pai.is_default != 0
+	ai.uri = pj2Str(&pai.acc_uri)
+	ai.regIsConfigured = pai.has_registration != 0
+	ai.regIsActive = pai.has_registration > 0 && pai.expires > 0 && pai.expires != C.PJSIP_EXPIRES_NOT_SPECIFIED && (pai.status/100 == 2)
+	ai.regExpiresSec = int(pai.expires)
+	ai.regStatus = StatusCode(pai.status)
+	ai.regStatusText = pj2Str(&pai.status_text)
+	ai.regLastErr = int(pai.reg_last_err)
+	ai.onlineStatus = pai.online_status != 0
+	ai.onlineStatusText = pj2Str(&pai.online_status_text)
+
+	return ai, nil
 }
 
 type authCredInfo struct {

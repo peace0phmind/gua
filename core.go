@@ -2,6 +2,7 @@ package gua
 
 /*
 #include "include/pjsua.h"
+// #include "include/callback.h"
 
 #define THIS_FILE "core.go"
 
@@ -38,6 +39,16 @@ void libRegisterThread(char *name)
     }
 }
 
+extern void callback_on_reg_started(pjsua_acc_id acc_id, pj_bool_t renew);
+void set_on_reg_started(pjsua_config *c) {
+	c->cb.on_reg_started = callback_on_reg_started;
+}
+
+extern void callback_on_reg_state2(pjsua_acc_id acc_id, pjsua_reg_info *info);
+void set_on_reg_state2(pjsua_config *c) {
+	c->cb.on_reg_state2 = callback_on_reg_state2;
+}
+
 */
 import "C"
 
@@ -72,7 +83,7 @@ func newConfig() *config {
 	return c
 }
 
-func (c *config) Free() {
+func (c *config) free() {
 	if c.c != nil {
 		C.free(unsafe.Pointer(c.c))
 		c.c = nil
@@ -97,7 +108,7 @@ func (lc *logConfig) SetLevel(level int) {
 	lc.lc.level = C.uint(level)
 }
 
-func (lc *logConfig) Free() {
+func (lc *logConfig) free() {
 	if lc.lc != nil {
 		C.free(unsafe.Pointer(lc.lc))
 		lc.lc = nil
@@ -118,7 +129,7 @@ func newMediaConfig() *mediaConfig {
 	return mc
 }
 
-func (mc *mediaConfig) Free() {
+func (mc *mediaConfig) free() {
 	if mc.mc != nil {
 		C.free(unsafe.Pointer(mc.mc))
 		mc.mc = nil
@@ -130,6 +141,8 @@ type endPointConfig struct {
 	pc  *config
 	plc *logConfig
 	pmc *mediaConfig
+
+	callback interface{}
 }
 
 func NewEndPointConfig() *endPointConfig {
@@ -152,16 +165,23 @@ func (epc *endPointConfig) MediaConfig() *mediaConfig {
 	return epc.pmc
 }
 
+func (epc *endPointConfig) Free() {
+	epc.pc.free()
+	epc.plc.free()
+	epc.pmc.free()
+}
+
 /****************************GuaContext*******************************/
 
 type GuaContext struct {
-	tid C.pjsua_transport_id
+	tid      C.pjsua_transport_id
+	callback interface{}
 }
 
 type codecInfo C.struct_pjsua_codec_info
 
-func NewGuaContext() *GuaContext {
-	return &GuaContext{}
+func NewGuaContext(callback interface{}) *GuaContext {
+	return &GuaContext{callback: callback}
 }
 
 func (gc *GuaContext) Create() error {
@@ -172,10 +192,28 @@ func (gc *GuaContext) Create() error {
 	return nil
 }
 
+func (gc *GuaContext) initCallback(c *config) {
+	if gc.callback == nil {
+		return
+	}
+
+	cb := gc.callback
+
+	if _, ok := cb.(CallbackOnRegStarted); ok {
+		C.set_on_reg_started(c.c)
+	}
+
+	if _, ok := cb.(CallbackOnRegState2); ok {
+		C.set_on_reg_state2(c.c)
+	}
+}
+
 func (gc *GuaContext) Init(epc *endPointConfig) error {
 	if epc == nil {
 		epc = NewEndPointConfig()
 	}
+
+	gc.initCallback(epc.Config())
 
 	if ret := C.pjsua_init(epc.Config().c, epc.LogConfig().lc, epc.MediaConfig().mc); ret != C.PJ_SUCCESS {
 		return errors.New(fmt.Sprintf("Init sua error: %d", ret))
