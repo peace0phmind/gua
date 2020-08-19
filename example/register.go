@@ -35,7 +35,12 @@ func NewServiceCallback() *ServiceCallback {
 
 func (sc *ServiceCallback) OnRegState2(acc *gua.Account, accId gua.AccountId, info *gua.RegInfo) {
 	fmt.Println("****************** on reg state2**********************")
-	fmt.Println(assert(acc.GetInfo()).(*gua.AccountInfo))
+	accountInfo, _ := acc.GetInfo()
+	fmt.Println(accountInfo)
+
+	if accountInfo.RegIsActive() {
+		acc.MakePlay("sip:34020000001320000001@32010100")
+	}
 }
 
 func main() {
@@ -48,6 +53,10 @@ func main() {
 	epc.LogConfig().SetLevel(4)
 
 	if err := guaCtx.Init(epc); err != nil {
+		fatal(err)
+	}
+
+	if err := guaCtx.SetNullSndDev(); err != nil {
 		fatal(err)
 	}
 

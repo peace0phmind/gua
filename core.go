@@ -192,6 +192,14 @@ func (gc *GuaContext) Create() error {
 	return nil
 }
 
+func (gc *GuaContext) SetNullSndDev() error {
+	if ret := C.pjsua_set_null_snd_dev(); ret != C.PJ_SUCCESS {
+		return errors.New(fmt.Sprintf("SetNullSndDev error: %d", ret))
+	}
+
+	return nil
+}
+
 func (gc *GuaContext) initCallback(c *config) {
 	if gc.callback == nil {
 		return

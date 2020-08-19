@@ -994,6 +994,224 @@ on_error:
     return status;
 }
 
+/*
+ * Make outgoing call to the specified URI using the specified account.
+ */
+PJ_DEF(pj_status_t) pjsua_call_make_play(pjsua_acc_id acc_id,
+					 const pj_str_t *dest_uri,
+					 const pjsua_call_setting *opt,
+					 void *user_data,
+					 const pjsua_msg_data *msg_data,
+					 pjsua_call_id *p_call_id)
+{
+    pj_pool_t *tmp_pool = NULL;
+    pjsip_dialog *dlg = NULL;
+    pjsua_acc *acc;
+    pjsua_call *call;
+    int call_id = -1;
+    pj_str_t contact;
+    pj_status_t status;
+
+    /* Check that account is valid */
+    PJ_ASSERT_RETURN(acc_id>=0 || acc_id<(int)PJ_ARRAY_SIZE(pjsua_var.acc),
+		     PJ_EINVAL);
+
+    /* Check arguments */
+    PJ_ASSERT_RETURN(dest_uri, PJ_EINVAL);
+
+    PJ_LOG(4,(THIS_FILE, "Making call with acc #%d to %.*s", acc_id,
+	      (int)dest_uri->slen, dest_uri->ptr));
+
+    pj_log_push_indent();
+
+    PJSUA_LOCK();
+
+    acc = &pjsua_var.acc[acc_id];
+    if (!acc->valid) {
+	pjsua_perror(THIS_FILE, "Unable to make call because account "
+		     "is not valid", PJ_EINVALIDOP);
+	status = PJ_EINVALIDOP;
+	goto on_error;
+    }
+
+    /* Find free call slot. */
+    call_id = alloc_call_id();
+
+    if (call_id == PJSUA_INVALID_ID) {
+	pjsua_perror(THIS_FILE, "Error making call", PJ_ETOOMANY);
+	status = PJ_ETOOMANY;
+	goto on_error;
+    }
+
+    /* Clear call descriptor */
+    reset_call(call_id);
+
+    call = &pjsua_var.calls[call_id];
+
+    /* Associate session with account */
+    call->acc_id = acc_id;
+    call->call_hold_type = acc->cfg.call_hold_type;
+
+    /* Generate per-session RTCP CNAME, according to RFC 7022. */
+    pj_create_random_string(call->cname_buf, call->cname.slen);
+
+    /* Apply call setting */
+    status = apply_call_setting(call, opt, NULL);
+    if (status != PJ_SUCCESS) {
+	pjsua_perror(THIS_FILE, "Failed to apply call setting", status);
+	goto on_error;
+    }
+    
+    /* Create sound port if none is instantiated, to check if sound device
+     * can be used. But only do this with the conference bridge, as with
+     * audio switchboard (i.e. APS-Direct), we can only open the sound
+     * device once the correct format has been known
+     */
+    if (!pjsua_var.is_mswitch && pjsua_var.snd_port==NULL &&
+	pjsua_var.null_snd==NULL && !pjsua_var.no_snd && call->opt.aud_cnt > 0)
+    {
+	status = pjsua_set_snd_dev(pjsua_var.cap_dev, pjsua_var.play_dev);
+	if (status != PJ_SUCCESS)
+	    goto on_error;
+    }
+
+    /* Create temporary pool */
+    tmp_pool = pjsua_pool_create("tmpcall10", 512, 256);
+
+    /* Verify that destination URI is valid before calling
+     * pjsua_acc_create_uac_contact, or otherwise there
+     * a misleading "Invalid Contact URI" error will be printed
+     * when pjsua_acc_create_uac_contact() fails.
+     */
+    if (1) {
+	pjsip_uri *uri;
+	pj_str_t dup;
+
+	pj_strdup_with_null(tmp_pool, &dup, dest_uri);
+	uri = pjsip_parse_uri(tmp_pool, dup.ptr, dup.slen, 0);
+
+	if (uri == NULL) {
+	    pjsua_perror(THIS_FILE, "Unable to make call",
+			 PJSIP_EINVALIDREQURI);
+	    status = PJSIP_EINVALIDREQURI;
+	    goto on_error;
+	}
+    }
+
+    /* Mark call start time. */
+    pj_gettimeofday(&call->start_time);
+
+    /* Reset first response time */
+    call->res_time.sec = 0;
+
+    /* Create suitable Contact header unless a Contact header has been
+     * set in the account.
+     */
+    if (acc->contact.slen) {
+	contact = acc->contact;
+    } else {
+	status = pjsua_acc_create_uac_contact(tmp_pool, &contact,
+					      acc_id, dest_uri);
+	if (status != PJ_SUCCESS) {
+	    pjsua_perror(THIS_FILE, "Unable to generate Contact header",
+			 status);
+	    goto on_error;
+	}
+    }
+
+    /* Create outgoing dialog: */
+    status = pjsip_dlg_create_uac( pjsip_ua_instance(),
+				   &acc->cfg.id, &contact,
+				   dest_uri,
+                                   (msg_data && msg_data->target_uri.slen?
+                                    &msg_data->target_uri: dest_uri),
+                                   &dlg);
+    if (status != PJ_SUCCESS) {
+	pjsua_perror(THIS_FILE, "Dialog creation failed", status);
+	goto on_error;
+    }
+
+    /* Increment the dialog's lock otherwise when invite session creation
+     * fails the dialog will be destroyed prematurely.
+     */
+    pjsip_dlg_inc_lock(dlg);
+
+    dlg_set_via(dlg, acc);
+
+    /* Calculate call's secure level */
+    call->secure_level = get_secure_level(acc_id, dest_uri);
+
+    /* Attach user data */
+    call->user_data = user_data;
+
+    /* Store variables required for the callback after the async
+     * media transport creation is completed.
+     */
+    if (msg_data) {
+	call->async_call.call_var.out_call.msg_data = pjsua_msg_data_clone(
+                                                          dlg->pool, msg_data);
+    }
+    call->async_call.dlg = dlg;
+
+    /* Temporarily increment dialog session. Without this, dialog will be
+     * prematurely destroyed if dec_lock() is called on the dialog before
+     * the invite session is created.
+     */
+    pjsip_dlg_inc_session(dlg, &pjsua_var.mod);
+
+    if ((call->opt.flag & PJSUA_CALL_NO_SDP_OFFER) == 0) {
+        /* Init media channel */
+        status = pjsua_media_channel_init(call->index, PJSIP_ROLE_UAC,
+                                          call->secure_level, dlg->pool,
+                                          NULL, NULL, PJ_TRUE,
+                                          &on_make_call_med_tp_complete);
+    }
+    if (status == PJ_SUCCESS) {
+        status = on_make_call_med_tp_complete(call->index, NULL);
+        if (status != PJ_SUCCESS)
+	    goto on_error;
+    } else if (status != PJ_EPENDING) {
+	pjsua_perror(THIS_FILE, "Error initializing media channel", status);
+        pjsip_dlg_dec_session(dlg, &pjsua_var.mod);
+	goto on_error;
+    }
+
+    /* Done. */
+
+    if (p_call_id)
+	*p_call_id = call_id;
+
+    pjsip_dlg_dec_lock(dlg);
+    pj_pool_release(tmp_pool);
+    PJSUA_UNLOCK();
+
+    pj_log_pop_indent();
+
+    return PJ_SUCCESS;
+
+
+on_error:
+    if (dlg) {
+	/* This may destroy the dialog */
+	pjsip_dlg_dec_lock(dlg);
+    }
+
+    if (call_id != -1) {
+	pjsua_media_channel_deinit(call_id);
+	reset_call(call_id);
+    }
+
+    pjsua_check_snd_dev_idle();
+
+    if (tmp_pool)
+	pj_pool_release(tmp_pool);
+    PJSUA_UNLOCK();
+
+    pj_log_pop_indent();
+    return status;
+}
+
+
 
 /* Get the NAT type information in remote's SDP */
 static void update_remote_nat_type(pjsua_call *call,

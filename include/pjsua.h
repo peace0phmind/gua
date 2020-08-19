@@ -5180,6 +5180,28 @@ PJ_DECL(pj_status_t) pjsua_call_make_call(pjsua_acc_id acc_id,
 					  const pjsua_msg_data *msg_data,
 					  pjsua_call_id *p_call_id);
 
+/**
+ * Make outgoing play to the specified URI using the specified account.
+ *
+ * @param acc_id	The account to be used.
+ * @param dst_uri	URI to be put in the To header (normally is the same
+ *			as the target URI).
+ * @param opt		Optional call setting. This should be initialized
+ *			using #pjsua_call_setting_default().
+ * @param user_data	Arbitrary user data to be attached to the call, and
+ *			can be retrieved later.
+ * @param msg_data	Optional headers etc to be added to outgoing INVITE
+ *			request, or NULL if no custom header is desired.
+ * @param p_call_id	Pointer to receive call identification.
+ *
+ * @return		PJ_SUCCESS on success, or the appropriate error code.
+ */
+PJ_DECL(pj_status_t) pjsua_call_make_play(pjsua_acc_id acc_id,
+					  const pj_str_t *dst_uri,
+					  const pjsua_call_setting *opt,
+					  void *user_data,
+					  const pjsua_msg_data *msg_data,
+					  pjsua_call_id *p_call_id);
 
 /**
  * Check if the specified call has active INVITE session and the INVITE

@@ -187,6 +187,26 @@ func (ac *Account) GetInfo() (*AccountInfo, error) {
 	return ai, nil
 }
 
+type Call struct {
+	id C.pjsua_call_id
+}
+
+func (ac *Account) MakePlay(dstUri string) (*Call, error) {
+
+	pj_dst_uri := str2Pj(dstUri)
+
+	call := &Call{}
+
+	setting := &C.pjsua_call_setting{}
+
+	C.pjsua_call_setting_default(setting)
+
+	if ret := C.pjsua_call_make_play(ac.id, &pj_dst_uri, setting, nil, nil, &call.id); ret != C.PJ_SUCCESS {
+		return nil, errors.New(fmt.Sprintf("Make play error: %d", ret))
+	}
+	return call, nil
+}
+
 type authCredInfo struct {
 	realm    string
 	scheme   string
