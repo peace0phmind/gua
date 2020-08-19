@@ -63,7 +63,7 @@ type config struct {
 	c *C.struct_pjsua_config
 }
 
-func NewConfig() *config {
+func newConfig() *config {
 	c := &config{}
 
 	c.c = (*C.struct_pjsua_config)(C.malloc(C.sizeof_struct_pjsua_config))
@@ -84,7 +84,7 @@ type logConfig struct {
 	lc *C.struct_pjsua_logging_config
 }
 
-func NewLogConfig() *logConfig {
+func newLogConfig() *logConfig {
 	lc := &logConfig{}
 
 	lc.lc = (*C.struct_pjsua_logging_config)(C.malloc(C.sizeof_struct_pjsua_logging_config))
@@ -109,7 +109,7 @@ type mediaConfig struct {
 	mc *C.struct_pjsua_media_config
 }
 
-func NewMediaConfig() *mediaConfig {
+func newMediaConfig() *mediaConfig {
 	mc := &mediaConfig{}
 
 	mc.mc = (*C.struct_pjsua_media_config)(C.malloc(C.sizeof_struct_pjsua_media_config))
@@ -123,6 +123,33 @@ func (mc *mediaConfig) Free() {
 		C.free(unsafe.Pointer(mc.mc))
 		mc.mc = nil
 	}
+}
+
+/****************************end point config*******************************/
+type endPointConfig struct {
+	pc  *config
+	plc *logConfig
+	pmc *mediaConfig
+}
+
+func NewEndPointConfig() *endPointConfig {
+	epc := &endPointConfig{}
+	epc.pc = newConfig()
+	epc.plc = newLogConfig()
+	epc.pmc = newMediaConfig()
+	return epc
+}
+
+func (epc *endPointConfig) Config() *config {
+	return epc.pc
+}
+
+func (epc *endPointConfig) LogConfig() *logConfig {
+	return epc.plc
+}
+
+func (epc *endPointConfig) MediaConfig() *mediaConfig {
+	return epc.pmc
 }
 
 /****************************GuaContext*******************************/
@@ -145,24 +172,12 @@ func (gc *GuaContext) Create() error {
 	return nil
 }
 
-func (gc *GuaContext) Init(c *config, lc *logConfig, mc *mediaConfig) error {
-	var param_c *C.struct_pjsua_config = nil
-	var param_lc *C.struct_pjsua_logging_config = nil
-	var param_mc *C.struct_pjsua_media_config = nil
-
-	if c != nil {
-		param_c = c.c
+func (gc *GuaContext) Init(epc *endPointConfig) error {
+	if epc == nil {
+		epc = NewEndPointConfig()
 	}
 
-	if lc != nil {
-		param_lc = lc.lc
-	}
-
-	if mc != nil {
-		param_mc = mc.mc
-	}
-
-	if ret := C.pjsua_init(param_c, param_lc, param_mc); ret != C.PJ_SUCCESS {
+	if ret := C.pjsua_init(epc.Config().c, epc.LogConfig().lc, epc.MediaConfig().mc); ret != C.PJ_SUCCESS {
 		return errors.New(fmt.Sprintf("Init sua error: %d", ret))
 	}
 

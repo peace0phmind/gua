@@ -90,6 +90,10 @@ func (ac *account) IsValid() bool {
 	return C.pjsua_acc_is_valid(ac.id) != 0
 }
 
+func (ac *account) SetDefault() {
+	C.pjsua_acc_set_default(ac.id)
+}
+
 func (ac *account) IsDefault() bool {
 	return C.pjsua_acc_get_default() == ac.id
 }
