@@ -15,19 +15,27 @@ func fatal(err error) {
 	log.Fatal(err)
 }
 
+func assert(i interface{}, err error) interface{} {
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return i
+}
+
 type ServiceCallback struct{}
 
 func NewServiceCallback() *ServiceCallback {
 	return &ServiceCallback{}
 }
 
-func (sc *ServiceCallback) OnRegStarted(acc *gua.Account, accId gua.AccountId, renew bool) {
-	fmt.Println("****************** on reg started**********************")
-}
+// func (sc *ServiceCallback) OnRegStarted(acc *gua.Account, accId gua.AccountId, renew bool) {
+// 	fmt.Println("****************** on reg started**********************")
+// }
 
 func (sc *ServiceCallback) OnRegState2(acc *gua.Account, accId gua.AccountId, info *gua.RegInfo) {
 	fmt.Println("****************** on reg state2**********************")
-	fmt.Print(acc.GetInfo())
+	fmt.Println(assert(acc.GetInfo()).(*gua.AccountInfo))
 }
 
 func main() {
