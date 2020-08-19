@@ -77,11 +77,27 @@ func (ac *account) Create(af *accountConfig, makeDefault bool) error {
 		iMakeDefault = 1
 	}
 
+	af.accCfg.user_data = unsafe.Pointer(ac)
+
 	if ret := C.pjsua_acc_add(af.accCfg, C.int(iMakeDefault), &ac.id); ret != C.PJ_SUCCESS {
 		return errors.New(fmt.Sprintf("Create account error: %d", ret))
 	}
 
 	return nil
+}
+
+func (ac *account) IsValid() bool {
+	return C.pjsua_acc_is_valid(ac.id) != 0
+}
+
+func (ac *account) IsDefault() bool {
+	return C.pjsua_acc_get_default() == ac.id
+}
+
+func (ac *account) Shutdown() {
+	if ac.IsValid() && C.pjsua_get_state() < C.PJSUA_STATE_CLOSING {
+		C.pjsua_acc_del(ac.id)
+	}
 }
 
 type authCredInfo struct {
