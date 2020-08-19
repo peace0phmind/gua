@@ -16,8 +16,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
  */
-#include "i/pjsua.h"
-#include "i/pjsua_internal.h"
+#include "include/pjsua.h"
+#include "include/pjsua_internal.h"
 
 const char *good_number(char *buf, pj_int32_t val)
 {

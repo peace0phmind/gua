@@ -1,7 +1,7 @@
 package gua
 
 /*
-#include "i/pjsua.h"
+#include "include/pjsua.h"
 
 #define THIS_FILE "core.go"
 
