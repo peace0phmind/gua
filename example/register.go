@@ -80,7 +80,7 @@ func main() {
 	accountConfig.SetIdUri("sip:34020000002060000001@32010100")
 	accountConfig.SetRegistrarUri("sip:58.213.90.194:5061")
 	accountConfig.SetRegistrarTimeoutSecond(3600)
-	cred := gua.NewAuthCredInfo("digest", "*", "test1", 0, "test1")
+	cred := gua.NewAuthCredInfo("digest", "*", "34020000002060000001", 0, "123456")
 	accountConfig.AddAuthCred(cred)
 
 	account := guaCtx.NewAccount()

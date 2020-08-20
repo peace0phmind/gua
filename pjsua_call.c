@@ -400,6 +400,23 @@ static int call_get_secure_level(pjsua_call *call)
 }
 */
 
+void pjsua_process_subject_data(pjsip_inv_session *inv,
+				      			pjsip_tx_data **p_tdata) 
+{
+	// TODO pengyi
+	// char subjectBuf[1024];
+
+	pj_str_t subject = pj_str("Subject");
+	pj_str_t value = pj_str("34020000001320000001:1,34020000002060000001:1");
+
+	pjsip_generic_string_hdr* hdr = pjsip_generic_string_hdr_create(inv->dlg->pool, &subject, &value);
+
+	pjsip_msg_add_hdr((*p_tdata)->msg, (pjsip_hdr *)hdr);
+	// pj_ansi_snprintf(subjectBuf, 1024, "%s:1,%s:1", )
+	// PJ_LOG(4, ("%s,", inv->dlg->target ));
+
+}
+
 /* Outgoing call callback when media transport creation is completed. */
 static pj_status_t
 on_make_call_med_tp_complete2(pjsua_call_id call_id,
@@ -527,6 +544,7 @@ on_make_call_med_tp_complete2(pjsua_call_id call_id,
 	goto on_error;
     }
 
+	pjsua_process_subject_data(inv, &tdata);
 
     /* Add additional headers etc */
 
