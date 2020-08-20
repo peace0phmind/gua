@@ -39,6 +39,8 @@
  */
 #define RESTART_ICE_ON_REINVITE      1
 
+static const pj_str_t GB_PLAY = { "Play", 4 };
+
 /*
  * The INFO method.
  */
@@ -400,8 +402,9 @@ static int call_get_secure_level(pjsua_call *call)
 
 /* Outgoing call callback when media transport creation is completed. */
 static pj_status_t
-on_make_call_med_tp_complete(pjsua_call_id call_id,
-                             const pjsua_med_tp_state_info *info)
+on_make_call_med_tp_complete2(pjsua_call_id call_id,
+                             const pjsua_med_tp_state_info *info,
+							 const pj_str_t *sess_name)
 {
     pjmedia_sdp_session *offer = NULL;
     pjsip_inv_session *inv = NULL;
@@ -453,7 +456,7 @@ on_make_call_med_tp_complete(pjsua_call_id call_id,
     /* Create offer */
     if ((call->opt.flag & PJSUA_CALL_NO_SDP_OFFER) == 0) {
         status = pjsua_media_channel_create_sdp(call->index, dlg->pool, NULL,
-                                                &offer, NULL);
+                                                &offer, NULL, sess_name);
         if (status != PJ_SUCCESS) {
             pjsua_perror(THIS_FILE, "Error initializing media channel", status);
             goto on_error;
@@ -589,6 +592,11 @@ on_error:
     return status;
 }
 
+static pj_status_t
+on_make_call_med_tp_complete(pjsua_call_id call_id,
+                             const pjsua_med_tp_state_info *info) {
+    return on_make_call_med_tp_complete2(call_id, info, NULL);
+}
 
 /*
  * Cleanup call setting flag to avoid one time flags, such as
@@ -1167,7 +1175,7 @@ PJ_DEF(pj_status_t) pjsua_call_make_play(pjsua_acc_id acc_id,
                                           &on_make_call_med_tp_complete);
     }
     if (status == PJ_SUCCESS) {
-        status = on_make_call_med_tp_complete(call->index, NULL);
+        status = on_make_call_med_tp_complete2(call->index, NULL, &GB_PLAY);
         if (status != PJ_SUCCESS)
 	    goto on_error;
     } else if (status != PJ_EPENDING) {
@@ -1344,7 +1352,6 @@ pj_status_t create_temp_sdp(pj_pool_t *pool,
     /* Get one address to use in the origin field */
     pj_sockaddr_init(PJ_AF_INET, &origin, pj_strset2(&tmp_st, "127.0.0.1"), 0);
 
-	print_trace();
     /* Create the base (blank) SDP */
     status = pjmedia_endpt_create_base_sdp(pjsua_var.med_endpt, pool, NULL,
                                            &origin, &sdp);
@@ -1455,7 +1462,7 @@ static pj_status_t verify_request(const pjsua_call *call,
     } else {
 	status = pjsua_media_channel_create_sdp(call->index,
 						call->async_call.dlg->pool,
-						offer, &answer, sip_err_code);
+						offer, &answer, sip_err_code, NULL);
 
 	if (status != PJ_SUCCESS) {
 	    err_code = *sip_err_code;
@@ -2102,7 +2109,7 @@ pj_bool_t pjsua_call_on_incoming(pjsip_rx_data *rdata)
     /* Create answer */
 /*
     status = pjsua_media_channel_create_sdp(call->index, rdata->tp_info.pool,
-					    offer, &answer, &sip_err_code);
+					    offer, &answer, &sip_err_code, NULL);
     if (status != PJ_SUCCESS) {
 	pjsua_perror(THIS_FILE, "Error creating SDP answer", status);
 	pjsip_endpt_respond(pjsua_var.endpt, NULL, rdata,
@@ -2686,7 +2693,7 @@ on_answer_call_med_tp_complete(pjsua_call_id call_id,
 
     status = pjsua_media_channel_create_sdp(call_id,
                                             call->async_call.dlg->pool,
-					    NULL, &sdp, &sip_err_code);
+					    NULL, &sdp, &sip_err_code, NULL);
     if (status != PJ_SUCCESS) {
 	pjsua_perror(THIS_FILE, "Error creating SDP answer", status);
         goto on_return;
@@ -3247,7 +3254,7 @@ PJ_DEF(pj_status_t) pjsua_call_reinvite2(pjsua_call_id call_id,
     } else if ((call->opt.flag & PJSUA_CALL_NO_SDP_OFFER) == 0) {
 	status = pjsua_media_channel_create_sdp(call->index,
 						call->inv->pool_prov,
-						NULL, &sdp, NULL);
+						NULL, &sdp, NULL, NULL);
     }
     if (status != PJ_SUCCESS) {
 	pjsua_perror(THIS_FILE, "Unable to get SDP from media endpoint",
@@ -3378,7 +3385,7 @@ PJ_DEF(pj_status_t) pjsua_call_update2(pjsua_call_id call_id,
     } else if ((call->opt.flag & PJSUA_CALL_NO_SDP_OFFER) == 0) {
 	status = pjsua_media_channel_create_sdp(call->index,
 						call->inv->pool_prov,
-						NULL, &sdp, NULL);
+						NULL, &sdp, NULL, NULL);
     }
 
     if (status != PJ_SUCCESS) {
@@ -4167,7 +4174,7 @@ static pj_status_t process_pending_reinvite(pjsua_call *call)
 
     /* Generate SDP re-offer */
     status = pjsua_media_channel_create_sdp(call->index, pool, NULL,
-					    &new_offer, NULL);
+					    &new_offer, NULL, NULL);
     if (status != PJ_SUCCESS) {
 	pjsua_perror(THIS_FILE, "Unable to create local SDP", status);
 	return status;
@@ -4827,7 +4834,7 @@ static pj_status_t create_sdp_of_call_hold(pjsua_call *call,
 
     /* Create new offer */
     status = pjsua_media_channel_create_sdp(call->index, pool, NULL, &sdp,
-					    NULL);
+					    NULL, NULL);
     if (status != PJ_SUCCESS) {
 	pjsua_perror(THIS_FILE, "Unable to create local SDP", status);
 	return status;
@@ -4938,7 +4945,7 @@ static void pjsua_call_on_rx_offer(pjsip_inv_session *inv,
 
     status = pjsua_media_channel_create_sdp(call->index,
 					    call->inv->pool_prov,
-					    offer, &answer, NULL);
+					    offer, &answer, NULL, NULL);
     if (status != PJ_SUCCESS) {
 	pjsua_perror(THIS_FILE, "Unable to create local SDP", status);
 	goto on_return;
@@ -5098,7 +5105,7 @@ static void pjsua_call_on_create_offer(pjsip_inv_session *inv,
 
 	status = pjsua_media_channel_create_sdp(call->index,
 						call->inv->pool_prov,
-					        NULL, offer, NULL);
+					        NULL, offer, NULL, NULL);
     }
 
     if (status != PJ_SUCCESS) {

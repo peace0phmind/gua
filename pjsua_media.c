@@ -2454,7 +2454,8 @@ pj_status_t pjsua_media_channel_create_sdp(pjsua_call_id call_id,
                        pj_pool_t *pool,
                        const pjmedia_sdp_session *rem_sdp,
                        pjmedia_sdp_session **p_sdp,
-                       int *sip_err_code)
+                       int *sip_err_code,
+                       const pj_str_t *sess_name)
 {
     enum { MAX_MEDIA = PJSUA_MAX_CALL_MEDIA };
     pjmedia_sdp_session *sdp;
@@ -2530,9 +2531,8 @@ pj_status_t pjsua_media_channel_create_sdp(pjsua_call_id call_id,
     break;
     }
 
-    print_trace();
     /* Create the base (blank) SDP */
-    status = pjmedia_endpt_create_base_sdp(pjsua_var.med_endpt, pool, NULL,
+    status = pjmedia_endpt_create_base_sdp(pjsua_var.med_endpt, pool, sess_name,
                                            &origin, &sdp);
     if (status != PJ_SUCCESS)
     goto on_error;
