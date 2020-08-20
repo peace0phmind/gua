@@ -8313,6 +8313,7 @@ PJ_DECL(pj_status_t) pjsua_vid_conf_disconnect(pjsua_conf_port_id source,
  * @}
  */
 
+PJ_DEF(void) print_trace (void);
 
 /**
  * @}

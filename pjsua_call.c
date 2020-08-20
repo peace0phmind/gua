@@ -1344,6 +1344,7 @@ pj_status_t create_temp_sdp(pj_pool_t *pool,
     /* Get one address to use in the origin field */
     pj_sockaddr_init(PJ_AF_INET, &origin, pj_strset2(&tmp_st, "127.0.0.1"), 0);
 
+	print_trace();
     /* Create the base (blank) SDP */
     status = pjmedia_endpt_create_base_sdp(pjsua_var.med_endpt, pool, NULL,
                                            &origin, &sdp);

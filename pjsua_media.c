@@ -2530,6 +2530,7 @@ pj_status_t pjsua_media_channel_create_sdp(pjsua_call_id call_id,
     break;
     }
 
+    print_trace();
     /* Create the base (blank) SDP */
     status = pjmedia_endpt_create_base_sdp(pjsua_var.med_endpt, pool, NULL,
                                            &origin, &sdp);

@@ -3,6 +3,8 @@
 package gua
 
 /*
+#cgo pkg-config: libavcodec libavformat libavutil libavdevice libswscale libswresample
+
 #cgo CPPFLAGS: -DPJ_AUTOCONF=1 -O2 -DPJ_IS_BIG_ENDIAN=0
 #cgo CPPFLAGS: -DPJ_IS_LITTLE_ENDIAN=1
 #cgo CPPFLAGS: -DPJMEDIA_USE_OLD_FFMPEG=1
@@ -28,5 +30,7 @@ package gua
 #cgo LDFLAGS: -lwebrtc-x86_64-unknown-linux-gnu
 #cgo LDFLAGS: -lpj-x86_64-unknown-linux-gnu
 #cgo LDFLAGS: -lssl -lcrypto -luuid -lm -lrt -lpthread -lasound
+#cgo LDFLAGS: -lSDL2
+
 */
 import "C"
