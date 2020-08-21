@@ -29,8 +29,7 @@ package gua
 #cgo LDFLAGS: -lyuv-x86_64-unknown-linux-gnu
 #cgo LDFLAGS: -lwebrtc-x86_64-unknown-linux-gnu
 #cgo LDFLAGS: -lpj-x86_64-unknown-linux-gnu
-#cgo LDFLAGS: -lssl -lcrypto -luuid -lm -lrt -lpthread -lasound
-#cgo LDFLAGS: -lSDL2
+#cgo LDFLAGS: -lssl -lcrypto -luuid -lm -lrt -lpthread -lasound -ldl -lSDL2
 
 */
 import "C"
