@@ -2693,7 +2693,7 @@ pj_status_t pjsua_media_channel_create_sdp(pjsua_call_id call_id,
     }
 #endif
 
-    // gb28181
+    // gb28181 remove fmtp
     status = pjmedia_sdp_attr_remove_all(&m->attr_count, m->attr, "fmtp");
     
     /* Find media bandwidth info */
@@ -2705,6 +2705,8 @@ pj_status_t pjsua_media_channel_create_sdp(pjsua_call_id call_id,
         break;
         }
     }
+    // gb28181 remove bandwidth
+    m->bandw_count = 0;
 
     /* Setup RTCP-FB */
     {
@@ -2764,6 +2766,11 @@ pj_status_t pjsua_media_channel_create_sdp(pjsua_call_id call_id,
         }
         }
     }
+
+        // gb28181 remove rtcp
+        status = pjmedia_sdp_attr_remove_all(&m->attr_count, m->attr, "rtcp");
+        //gb28181 remote rtcp-fb
+        status = pjmedia_sdp_attr_remove_all(&m->attr_count, m->attr, "rtcp-fb");
     }
 
     /* Add NAT info in the SDP */
@@ -2784,9 +2791,10 @@ pj_status_t pjsua_media_channel_create_sdp(pjsua_call_id call_id,
                       type_name);
     }
 
-    a = pjmedia_sdp_attr_create(pool, "X-nat", &value);
-
-    pjmedia_sdp_attr_add(&sdp->attr_count, sdp->attr, a);
+// gb28181 remove x-nat
+//    a = pjmedia_sdp_attr_create(pool, "X-nat", &value);
+//
+//    pjmedia_sdp_attr_add(&sdp->attr_count, sdp->attr, a);
 
     }
 
