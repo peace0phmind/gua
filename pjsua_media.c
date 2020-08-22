@@ -27,6 +27,8 @@
 #   define PJSUA_REQUIRE_CONSECUTIVE_RTCP_PORT	0
 #endif
 
+const pj_str_t STR_RECVONLY = { "recvonly", 8 };
+
 static void stop_media_stream(pjsua_call *call, unsigned med_idx);
 
 static void pjsua_media_config_dup(pj_pool_t *pool,
@@ -2649,6 +2651,13 @@ pj_status_t pjsua_media_channel_create_sdp(pjsua_call_id call_id,
     case PJMEDIA_TYPE_VIDEO:
         status = pjmedia_endpt_create_video_sdp(pjsua_var.med_endpt, pool,
                                                 &tpinfo.sock_info, 0, &m);
+
+        // gb28181 set sendrecv to recvonly
+        pjmedia_sdp_attr *attr = pjmedia_sdp_attr_find2(m->attr_count, m->attr, "sendrecv", NULL);
+        if (attr) {
+            attr->name = STR_RECVONLY;
+        }
+
         break;
 #endif
     default:
@@ -2660,9 +2669,10 @@ pj_status_t pjsua_media_channel_create_sdp(pjsua_call_id call_id,
         goto on_error;
 
         /* Add ssrc and cname attribute */
-        m->attr[m->attr_count++] = pjmedia_sdp_attr_create_ssrc(pool,
-                                    call_med->ssrc,
-                                    &call->cname);
+        // gb28181 commented
+//        m->attr[m->attr_count++] = pjmedia_sdp_attr_create_ssrc(pool,
+//                                    call_med->ssrc,
+//                                    &call->cname);
 
     sdp->media[sdp->media_count++] = m;
 
@@ -2683,6 +2693,8 @@ pj_status_t pjsua_media_channel_create_sdp(pjsua_call_id call_id,
     }
 #endif
 
+    // gb28181
+    status = pjmedia_sdp_attr_remove_all(&m->attr_count, m->attr, "fmtp");
     
     /* Find media bandwidth info */
     for (i = 0; i < m->bandw_count; ++i) {
