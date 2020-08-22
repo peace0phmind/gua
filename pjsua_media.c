@@ -2539,8 +2539,10 @@ pj_status_t pjsua_media_channel_create_sdp(pjsua_call_id call_id,
     if (status != PJ_SUCCESS)
     goto on_error;
 
-    // GB28181 set sdp origion user to account user ptr
+    // gb28181 set sdp origion user to account user ptr
     sdp->origin.user = acc->user_part;
+    sdp->origin.id = 0;
+    sdp->origin.version = 0;
 
     /* Process each media line */
     for (mi=0; mi<call->med_prov_cnt; ++mi) {
@@ -2769,8 +2771,11 @@ pj_status_t pjsua_media_channel_create_sdp(pjsua_call_id call_id,
 
         // gb28181 remove rtcp
         status = pjmedia_sdp_attr_remove_all(&m->attr_count, m->attr, "rtcp");
-        //gb28181 remote rtcp-fb
+        // gb28181 remote rtcp-fb
         status = pjmedia_sdp_attr_remove_all(&m->attr_count, m->attr, "rtcp-fb");
+        // gb28181 set media conn to sdp conn, set media conn to null
+        sdp->conn = m->conn;
+        m->conn = NULL;
     }
 
     /* Add NAT info in the SDP */
@@ -2800,7 +2805,9 @@ pj_status_t pjsua_media_channel_create_sdp(pjsua_call_id call_id,
 
 
     /* Add bandwidth info in session level using bandwidth modifier "AS". */
-    if (tot_bandw_tias) {
+    // gb28181 remote as
+//    if (tot_bandw_tias) {
+    if (0) {
     unsigned bandw;
     const pj_str_t STR_BANDW_MODIFIER_AS = { "AS", 2 };
     pjmedia_sdp_bandw *b;
