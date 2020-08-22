@@ -2537,6 +2537,9 @@ pj_status_t pjsua_media_channel_create_sdp(pjsua_call_id call_id,
     if (status != PJ_SUCCESS)
     goto on_error;
 
+    // set sdp origion user to account user ptr
+    sdp->origin.user = acc->user_part;
+
     /* Process each media line */
     for (mi=0; mi<call->med_prov_cnt; ++mi) {
     pjsua_call_media *call_med = &call->media_prov[mi];
