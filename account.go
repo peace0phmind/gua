@@ -207,6 +207,10 @@ func (cs * callSetting) SetAudioCount(count int) {
 	cs.setting.aud_cnt = C.uint(count)
 }
 
+func (cs *callSetting) SetFlag(flag int) {
+	cs.setting.flag = C.uint(flag)
+}
+
 func (ac *Account) MakePlay(dstUri string) (*Call, error) {
 
 	pj_dst_uri := str2Pj(dstUri)
@@ -215,6 +219,7 @@ func (ac *Account) MakePlay(dstUri string) (*Call, error) {
 
 	setting := newCallSetting()
 	setting.SetAudioCount(0)
+	setting.SetFlag(0)
 
 	if ret := C.pjsua_call_make_play(ac.id, &pj_dst_uri, &setting.setting, nil, nil, &call.id); ret != C.PJ_SUCCESS {
 		return nil, errors.New(fmt.Sprintf("Make play error: %d", ret))
