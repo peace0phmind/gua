@@ -191,17 +191,32 @@ type Call struct {
 	id C.pjsua_call_id
 }
 
+type callSetting struct {
+	setting C.pjsua_call_setting
+}
+
+func newCallSetting() *callSetting {
+	setting := &callSetting{}
+
+	C.pjsua_call_setting_default(&setting.setting)
+
+	return setting
+}
+
+func (cs * callSetting) SetAudioCount(count int) {
+	cs.setting.aud_cnt = C.uint(count)
+}
+
 func (ac *Account) MakePlay(dstUri string) (*Call, error) {
 
 	pj_dst_uri := str2Pj(dstUri)
 
 	call := &Call{}
 
-	setting := &C.pjsua_call_setting{}
+	setting := newCallSetting()
+	setting.SetAudioCount(0)
 
-	C.pjsua_call_setting_default(setting)
-
-	if ret := C.pjsua_call_make_play(ac.id, &pj_dst_uri, setting, nil, nil, &call.id); ret != C.PJ_SUCCESS {
+	if ret := C.pjsua_call_make_play(ac.id, &pj_dst_uri, &setting.setting, nil, nil, &call.id); ret != C.PJ_SUCCESS {
 		return nil, errors.New(fmt.Sprintf("Make play error: %d", ret))
 	}
 	return call, nil

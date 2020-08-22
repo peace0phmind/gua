@@ -5,7 +5,7 @@ package gua
 /*
 #cgo pkg-config: libavcodec libavformat libavutil libavdevice libswscale libswresample
 
-#cgo CPPFLAGS: -DPJ_AUTOCONF=1 -O2 -DPJ_IS_BIG_ENDIAN=0
+#cgo CPPFLAGS: -DPJ_AUTOCONF=1 -Og -DPJ_IS_BIG_ENDIAN=0
 #cgo CPPFLAGS: -DPJ_IS_LITTLE_ENDIAN=1
 #cgo CPPFLAGS: -DPJMEDIA_USE_OLD_FFMPEG=1
 #cgo CPPFLAGS: -I./i -I/usr/local/include -I/usr/include

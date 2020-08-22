@@ -406,6 +406,9 @@ void pjsua_process_subject_data(pjsip_inv_session *inv,
 	// TODO pengyi
 	// char subjectBuf[1024];
 
+	pj_str_t target = pj_str("sip:34020000001320000001@58.213.90.194:5061");
+    (*p_tdata)->msg->line.req.uri = pjsip_parse_uri((*p_tdata)->pool, target.ptr, target.slen, 0);
+
 	pj_str_t subject = pj_str("Subject");
 	pj_str_t value = pj_str("34020000001320000001:1,34020000002060000001:1");
 
