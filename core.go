@@ -2,7 +2,9 @@ package gua
 
 /*
 #include "include/pjsua.h"
-// #include "include/callback.h"
+#include "include/ps_codecs.h"
+#include "include/pjsua_internal.h"
+
 
 #define THIS_FILE "core.go"
 
@@ -225,6 +227,10 @@ func (gc *GuaContext) Init(epc *endPointConfig) error {
 
 	if ret := C.pjsua_init(epc.Config().c, epc.LogConfig().lc, epc.MediaConfig().mc); ret != C.PJ_SUCCESS {
 		return errors.New(fmt.Sprintf("Init sua error: %d", ret))
+	}
+
+	if ret := C.pjmedia_codec_ps_vid_init(nil, &C.pjsua_var.cp.factory); ret != C.PJ_SUCCESS {
+		return errors.New(fmt.Sprintf("Error initializing ffmpeg library: %d", ret))
 	}
 
 	return nil
