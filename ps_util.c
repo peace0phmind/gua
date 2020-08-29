@@ -30,8 +30,8 @@
 /* Conversion table between pjmedia_format_id and AVPixelFormat */
 static const struct ps_fmt_table_t
 {
-    pjmedia_format_id	id;
-    enum AVPixelFormat	pf;
+    pjmedia_format_id         id;
+    enum AVPixelFormat        pf;
 } ps_fmt_table[] =
 {
     { PJMEDIA_FORMAT_RGBA, AV(PIX_FMT_RGBA)},
@@ -54,18 +54,18 @@ static const struct ps_fmt_table_t
 /* Conversion table between pjmedia_format_id and CodecID */
 static const struct ps_codec_table_t
 {
-    pjmedia_format_id	id;
-    unsigned		codec_id;
+    pjmedia_format_id        id;
+    unsigned                 codec_id;
 } ps_codec_table[] =
 {
-    {PJMEDIA_FORMAT_H261,	AV(CODEC_ID_H261)},
-    {PJMEDIA_FORMAT_H263,	AV(CODEC_ID_H263)},
-    {PJMEDIA_FORMAT_H263P,	AV(CODEC_ID_H263P)},
-    {PJMEDIA_FORMAT_H264,	AV(CODEC_ID_H264)},
-    {PJMEDIA_FORMAT_MPEG1VIDEO,	AV(CODEC_ID_MPEG1VIDEO)},
-    {PJMEDIA_FORMAT_MPEG2VIDEO, AV(CODEC_ID_MPEG2VIDEO)},
-    {PJMEDIA_FORMAT_MPEG4,	AV(CODEC_ID_MPEG4)},
-    {PJMEDIA_FORMAT_MJPEG,	AV(CODEC_ID_MJPEG)}
+    {PJMEDIA_FORMAT_H261,           AV(CODEC_ID_H261)},
+    {PJMEDIA_FORMAT_H263,           AV(CODEC_ID_H263)},
+    {PJMEDIA_FORMAT_H263P,          AV(CODEC_ID_H263P)},
+    {PJMEDIA_FORMAT_H264,           AV(CODEC_ID_H264)},
+    {PJMEDIA_FORMAT_MPEG1VIDEO,     AV(CODEC_ID_MPEG1VIDEO)},
+    {PJMEDIA_FORMAT_MPEG2VIDEO,     AV(CODEC_ID_MPEG2VIDEO)},
+    {PJMEDIA_FORMAT_MPEG4,          AV(CODEC_ID_MPEG4)},
+    {PJMEDIA_FORMAT_MJPEG,          AV(CODEC_ID_MJPEG)}
 };
 
 static int ps_ref_cnt;
@@ -75,23 +75,22 @@ static void ps_log_cb(void* ptr, int level, const char* fmt, va_list vl);
 void ps_add_ref()
 {
     if (ps_ref_cnt++ == 0) {
-	av_log_set_level(AV_LOG_ERROR);
-	av_log_set_callback(&ps_log_cb);
-	  av_register_all();
+        av_log_set_level(AV_LOG_ERROR);
+        av_log_set_callback(&ps_log_cb);
+        av_register_all();
     }
 }
 
 void ps_dec_ref()
 {
     if (ps_ref_cnt-- == 1) {
-	    /* How to shutdown ps? */
+        /* How to shutdown ps? */
     }
 
     if (ps_ref_cnt < 0) {
         ps_ref_cnt = 0;
     }
 }
-
 
 static void ps_log_cb(void* ptr, int level, const char* fmt, va_list vl)
 {
@@ -102,22 +101,25 @@ static void ps_log_cb(void* ptr, int level, const char* fmt, va_list vl)
     pj_str_t fmt_st;
 
     /* Custom callback needs to filter log level by itself */
-    if (level > av_log_get_level())
-	return;
+    if (level > av_log_get_level()) {
+        return;
+    }
 
     /* Add original ps sender to log format */
     if (ptr) {
-	AVClass* avc = *(AVClass**)ptr;
-	len = pj_ansi_snprintf(buf, bufsize, "%s: ", avc->item_name(ptr));
-	if (len < 1 || len >= bufsize)
-	    len = bufsize - 1;
-	bufsize -= len;
+        AVClass* avc = *(AVClass**)ptr;
+        len = pj_ansi_snprintf(buf, bufsize, "%s: ", avc->item_name(ptr));
+        if (len < 1 || len >= bufsize) {
+            len = bufsize - 1;
+        }
+        bufsize -= len;
     }
 
     /* Copy original log format */
     len = pj_ansi_strlen(fmt);
-    if (len > bufsize-1)
-	len = bufsize-1;
+    if (len > bufsize-1) {
+        len = bufsize-1;
+    }
     pj_memcpy(buf+sizeof(buf)-bufsize, fmt, len);
     bufsize -= len;
 
@@ -131,15 +133,15 @@ static void ps_log_cb(void* ptr, int level, const char* fmt, va_list vl)
 
 
 pj_status_t ps_format_id_to_PixelFormat(pjmedia_format_id fmt_id,
-					     enum AVPixelFormat *pixel_format)
+                                             enum AVPixelFormat *pixel_format)
 {
     unsigned i;
     for (i=0; i<PJ_ARRAY_SIZE(ps_fmt_table); ++i) {
-	const struct ps_fmt_table_t *t = &ps_fmt_table[i];
-	if (t->id==fmt_id && t->pf != AV(PIX_FMT_NONE)) {
-	    *pixel_format = t->pf;
-	    return PJ_SUCCESS;
-	}
+        const struct ps_fmt_table_t *t = &ps_fmt_table[i];
+        if (t->id==fmt_id && t->pf != AV(PIX_FMT_NONE)) {
+            *pixel_format = t->pf;
+            return PJ_SUCCESS;
+        }
     }
 
     *pixel_format = AV(PIX_FMT_NONE);
@@ -147,30 +149,30 @@ pj_status_t ps_format_id_to_PixelFormat(pjmedia_format_id fmt_id,
 }
 
 pj_status_t PixelFormat_to_ps_format_id(enum AVPixelFormat pf,
-					     pjmedia_format_id *fmt_id)
+                                             pjmedia_format_id *fmt_id)
 {
     unsigned i;
     for (i=0; i<PJ_ARRAY_SIZE(ps_fmt_table); ++i) {
-	const struct ps_fmt_table_t *t = &ps_fmt_table[i];
-	if (t->pf == pf) {
-	    if (fmt_id) *fmt_id = t->id;
-	    return PJ_SUCCESS;
-	}
+        const struct ps_fmt_table_t *t = &ps_fmt_table[i];
+        if (t->pf == pf) {
+            if (fmt_id) *fmt_id = t->id;
+            return PJ_SUCCESS;
+        }
     }
 
     return PJ_ENOTFOUND;
 }
 
 pj_status_t ps_format_id_to_CodecID(pjmedia_format_id fmt_id,
-					 unsigned *codec_id)
+                                         unsigned *codec_id)
 {
     unsigned i;
     for (i=0; i<PJ_ARRAY_SIZE(ps_codec_table); ++i) {
-	const struct ps_codec_table_t *t = &ps_codec_table[i];
-	if (t->id==fmt_id && t->codec_id != AV(PIX_FMT_NONE)) {
-	    *codec_id = t->codec_id;
-	    return PJ_SUCCESS;
-	}
+        const struct ps_codec_table_t *t = &ps_codec_table[i];
+        if (t->id==fmt_id && t->codec_id != AV(PIX_FMT_NONE)) {
+            *codec_id = t->codec_id;
+            return PJ_SUCCESS;
+        }
     }
 
     *codec_id = (unsigned)AV(PIX_FMT_NONE);
@@ -178,15 +180,15 @@ pj_status_t ps_format_id_to_CodecID(pjmedia_format_id fmt_id,
 }
 
 pj_status_t CodecID_to_ps_format_id(unsigned codec_id,
-					 pjmedia_format_id *fmt_id)
+                                         pjmedia_format_id *fmt_id)
 {
     unsigned i;
     for (i=0; i<PJ_ARRAY_SIZE(ps_codec_table); ++i) {
-	const struct ps_codec_table_t *t = &ps_codec_table[i];
-	if ((unsigned)t->codec_id == codec_id) {
-	    if (fmt_id) *fmt_id = t->id;
-	    return PJ_SUCCESS;
-	}
+        const struct ps_codec_table_t *t = &ps_codec_table[i];
+        if ((unsigned)t->codec_id == codec_id) {
+            if (fmt_id) *fmt_id = t->id;
+            return PJ_SUCCESS;
+        }
     }
 
     return PJ_ENOTFOUND;
@@ -198,4 +200,4 @@ pj_status_t CodecID_to_ps_format_id(unsigned codec_id,
 #   pragma comment( lib, "avutil.lib")
 #endif
 
-#endif	/* PJMEDIA_HAS_LIBAVFORMAT */
+#endif        /* PJMEDIA_HAS_LIBAVFORMAT */
