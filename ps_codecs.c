@@ -1335,7 +1335,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                         return PJ_SUCCESS;
                     }
                 } else {
-                    PJ_LOG(1, ("Unpacketize video pes from ps error, no NAL start code"));
+                    PJ_LOG(1, (THIS_FILE, "Unpacketize video pes from ps error, no NAL start code"));
                     return PJ_ENOTSUP;
                 }
 
