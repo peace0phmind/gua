@@ -1269,7 +1269,8 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                                        pj_size_t   payload_len,
                                        pj_uint8_t *bits,
                                        pj_size_t   bits_len,
-                                       unsigned   *bits_pos)
+                                       unsigned   *bits_pos,
+                                       unsigned   *expected_video_len)
 {
     int len = payload_len;
     pj_uint8_t * payload_buf = payload;
@@ -1318,6 +1319,9 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                 len -= pes_header_length;
                 payload_buf += pes_header_length;
                 int video_data_len = pes_packet_length - 2 - 1 - pes_header_data_length;
+
+                // NAL start code is 0x00, 0x00, 0x01, change from 4 bit to 3 bit
+                *expected_video_len += video_data_len - 1;
 
                 if (CHECK_NAL_START_CODE(payload_buf)) {
                     if (ff->desc->unpacketize) {
@@ -1773,6 +1777,7 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
     } else {
         pjmedia_frame whole_frm;
         unsigned whole_len = 0;
+        unsigned expected_video_len = 0
         unsigned i;
 
         for (i=0; i<pkt_count; ++i) {
@@ -1783,7 +1788,7 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
 
             status = ps_unpacketize(codec, packets[i].buf, packets[i].size,
                                     ff->dec_buf, ff->dec_buf_size,
-                                    &whole_len);
+                                    &whole_len, &expected_video_len);
             if (status != PJ_SUCCESS) {
                 PJ_PERROR(5,(THIS_FILE, status, "Unpacketize error"));
                 continue;
@@ -1795,7 +1800,11 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
         whole_frm.timestamp = output->timestamp = packets[i].timestamp;
         whole_frm.bit_info = 0;
 
-        return ps_codec_decode_whole(codec, &whole_frm, out_size, output);
+        if (expected_video_len == whole_frm.size) {
+            return ps_codec_decode_whole(codec, &whole_frm, out_size, output);
+        } else {
+            PJ_LOG(3, (THIS_FILE, "Recieve error, expect len is %d, actual is %d", expected_video_len, whole_frm.size));
+        }
     }
 }
 
