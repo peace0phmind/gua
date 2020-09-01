@@ -1345,7 +1345,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                 CHECK_BUFFER_SIZE(9);
                 int audio_pes_packet_length = GET_BUFFER_LENGTH(payload_buf + 4);
                 int audio_pes_header_data_length = *(payload_buf + 8);
-                int audio_pes_header_length = 6 + 2 + 1 + audio_pes_packet_length;
+                int audio_pes_header_length = 6 + 2 + 1 + audio_pes_header_data_length;
                 CHECK_BUFFER_SIZE(audio_pes_header_length);
 
                 len -= audio_pes_header_length;
