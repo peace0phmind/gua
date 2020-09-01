@@ -288,7 +288,7 @@ static pj_status_t h264_preopen(ps_private *ff)
 
     /* Create packetizer */
     pktz_cfg.mtu = ff->param.enc_mtu;
-    pktz_cfg.unpack_nal_start = 0;
+    pktz_cfg.unpack_nal_start = 4;
 #if 0
     if (data->fmtp.packetization_mode == 0)
         pktz_cfg.mode = PJMEDIA_H264_PACKETIZER_MODE_SINGLE_NAL;
@@ -949,10 +949,10 @@ static void print_ps_err(int err)
 #if LIBAVCODEC_VER_AT_LEAST(52,72)
     char errbuf[512];
     if (av_strerror(err, errbuf, sizeof(errbuf)) >= 0) {
-        PJ_LOG(5, (THIS_FILE, "ps err %d: %s", err, errbuf));
+        PJ_LOG(3, (THIS_FILE, "ps err %d: %s", err, errbuf));
     }
 #else
-    PJ_LOG(5, (THIS_FILE, "ps err %d", err));
+    PJ_LOG(3, (THIS_FILE, "ps err %d", err));
 #endif
 
 }
@@ -1321,7 +1321,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                 int video_data_len = pes_packet_length - 2 - 1 - pes_header_data_length;
 
                 // NAL start code is 0x00, 0x00, 0x01, change from 4 bit to 3 bit
-                *expected_video_len += video_data_len - 1;
+                *expected_video_len += video_data_len;
 
                 if (CHECK_NAL_START_CODE(payload_buf)) {
                     if (ff->desc->unpacketize) {
