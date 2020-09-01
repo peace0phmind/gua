@@ -1367,7 +1367,8 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
 
     if (len > 0) {
         // this is the video pes stream
-        pj_memcpy(bits, payload_buf, len);
+        pj_uint8_t * p = bits + (*bits_pos);
+        pj_memcpy(p, payload_buf, len);
         *bits_pos += len;
     }
 
