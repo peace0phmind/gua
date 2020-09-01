@@ -1777,7 +1777,7 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
     } else {
         pjmedia_frame whole_frm;
         unsigned whole_len = 0;
-        unsigned expected_video_len = 0
+        unsigned expected_video_len = 0;
         unsigned i;
 
         for (i=0; i<pkt_count; ++i) {
