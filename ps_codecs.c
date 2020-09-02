@@ -254,7 +254,7 @@ static ps_codec_desc codec_desc[] =
         {PJMEDIA_FORMAT_H264, PJMEDIA_RTP_PT_PS, {"PS",2},
          {"Constrained Baseline (level=30, pack=1)", 39}},
         0,
-        {720, 480},        {25, 1},        256000, 256000,
+        {1920, 1080},        {25, 1},        256000, 256000,
         &h264_packetize, &h264_unpacketize, &h264_preopen, &h264_postopen,
         &pjmedia_vid_codec_h264_match_sdp,
         /* Leading space for better compatibility (strange indeed!) */
@@ -288,7 +288,7 @@ static pj_status_t h264_preopen(ps_private *ff)
 
     /* Create packetizer */
     pktz_cfg.mtu = ff->param.enc_mtu;
-    pktz_cfg.unpack_nal_start = 4;
+    pktz_cfg.unpack_nal_start = 0;
 #if 0
     if (data->fmtp.packetization_mode == 0)
         pktz_cfg.mode = PJMEDIA_H264_PACKETIZER_MODE_SINGLE_NAL;
@@ -1321,7 +1321,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                 int video_data_len = pes_packet_length - 2 - 1 - pes_header_data_length;
 
                 // NAL start code is 0x00, 0x00, 0x01, change from 4 bit to 3 bit
-                *expected_video_len += video_data_len;
+                *expected_video_len += video_data_len - 1;
 
                 if (CHECK_NAL_START_CODE(payload_buf)) {
                     if (ff->desc->unpacketize) {
@@ -1796,7 +1796,7 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
         }
 
         whole_frm.buf = ff->dec_buf;
-        whole_frm.size = whole_len;
+        whole_frm.size = expected_video_len > whole_len ? whole_len : expected_video_len;
         whole_frm.timestamp = output->timestamp = packets[i].timestamp;
         whole_frm.bit_info = 0;
 
@@ -1804,6 +1804,7 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
             return ps_codec_decode_whole(codec, &whole_frm, out_size, output);
         } else {
             PJ_LOG(3, (THIS_FILE, "Recieve error, expect len is %d, actual is %d", expected_video_len, whole_frm.size));
+            return PJ_SUCCESS;
         }
     }
 }
