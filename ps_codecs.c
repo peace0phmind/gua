@@ -1370,7 +1370,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
         } else {
             int payload_data_len = len;
             if (*expected_video_len - *bits_pos < len) {
-                payload_data_len = len + *bits_pos - *expected_video_len;
+                payload_data_len = *expected_video_len - *bits_pos;
             }
             // this is the video pes stream
             pj_uint8_t * p = bits + (*bits_pos);
