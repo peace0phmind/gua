@@ -1806,13 +1806,11 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
         whole_frm.timestamp = output->timestamp = packets[i].timestamp;
         whole_frm.bit_info = 0;
 
-        if (expected_video_len == whole_frm.size) {
-            PJ_LOG(3, (THIS_FILE, "ps_codec_decode_whole, buf len is %d", whole_frm.size));
-            return ps_codec_decode_whole(codec, &whole_frm, out_size, output);
-        } else {
-            PJ_LOG(3, (THIS_FILE, "Recieve error, expect len is %d, actual is %d", expected_video_len, whole_frm.size));
-            return PJ_SUCCESS;
+
+        if (expected_video_len != whole_frm.size) {
+            PJ_LOG(3, (THIS_FILE, "ps_codec_decode_whole, pkg_count: %d, buf len is %d, expected_video_len %d", pkt_count,  whole_frm.size, expected_video_len));
         }
+        return ps_codec_decode_whole(codec, &whole_frm, out_size, output);
     }
 }
 
