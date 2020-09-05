@@ -1802,6 +1802,10 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
                 break;
             }
 
+            if (packets[i].size == 0) {
+                PJ_LOG(5,(THIS_FILE, "ps_codec_decode pkt empty. ts: %d, pkt_cnt: %d, pkt_idx: %d", packets[i].timestamp.u64, pkt_count, i));
+            }
+
             status = ps_unpacketize(codec, packets[i].buf, packets[i].size,
                                     ff->dec_buf, ff->dec_buf_size,
                                     &whole_len, &expected_video_len);
@@ -1818,7 +1822,8 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
 
 
         if (expected_video_len != whole_frm.size) {
-            PJ_LOG(3, (THIS_FILE, "ps_codec_decode_whole, pkg_count: %d, buf len is %d, expected_video_len %d", pkt_count,  whole_frm.size, expected_video_len));
+            PJ_LOG(3, (THIS_FILE, "ps_codec_decode_whole err.ts: %d pkg_count: %d, buf len is %d, expected_video_len %d",
+                    whole_frm.timestamp, pkt_count,  whole_frm.size, expected_video_len));
         }
         return ps_codec_decode_whole(codec, &whole_frm, out_size, output);
     }
