@@ -1339,8 +1339,12 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                             return PJ_SUCCESS;
                         }
                     } else {
-                        PJ_LOG(1, (THIS_FILE, "Unpacketize video pes from ps error, no NAL start code"));
-                        return PJ_ENOTSUP;
+                        pj_uint8_t * p = bits + (*bits_pos);
+                        pj_memcpy(p, payload_buf, len);
+                        *bits_pos += len;
+
+                        len -= len;
+                        payload_buf += len;
                     }
 
                     break;
@@ -1368,6 +1372,12 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                     return PJ_EBUG;
             }
         } else {
+            if (*expected_video_len == *bits_pos) {
+                PJ_LOG(3, (THIS_FILE, "expected len %d equals bits_pos %d, but have buf len %d, buf prefix: %x%x%x%x",
+                *expected_video_len, *bits_pos, len, payload_buf, payload_buf+1, payload_buf+2, payload_buf+3));
+                return PJ_ENOTSUP;
+            }
+
             int payload_data_len = len;
             if (*expected_video_len - *bits_pos < len) {
                 payload_data_len = *expected_video_len - *bits_pos;

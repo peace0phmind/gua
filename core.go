@@ -110,6 +110,10 @@ func (lc *logConfig) SetLevel(level int) {
 	lc.lc.level = C.uint(level)
 }
 
+func (lc *logConfig) SetConsoleLevel(level int) {
+	lc.lc.console_level = C.uint(level)
+}
+
 func (lc *logConfig) free() {
 	if lc.lc != nil {
 		C.free(unsafe.Pointer(lc.lc))
@@ -234,6 +238,14 @@ func (gc *GuaContext) Init(epc *endPointConfig) error {
 	}
 
 	return nil
+}
+
+func (gc *GuaContext) LogSetLevel(level int) {
+	C.pj_log_set_level(C.int(level))
+}
+
+func (gc *GuaContext) LogGetLevel() int {
+	return int(C.pj_log_get_level())
 }
 
 func (gc *GuaContext) TransportCreate(typ int, cfg *transportConfig) error {
