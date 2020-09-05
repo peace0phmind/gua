@@ -137,9 +137,9 @@ typedef struct ps_codec_desc ps_codec_desc;
 #define MAX_GET_OR_SKIP_BUF_SIZE       2000
 
 enum ps_codec_op {
-	PS_CODEC_OP_GET             = 1,
-	PS_CODEC_OP_SEEK            = 2,
-	PS_CODEC_OP_COPY            = 3,
+	PS_CODEC_OP_GET             = 1,  // get and seek
+	PS_CODEC_OP_COPY            = 2,  // copy and seek
+	PS_CODEC_OP_SEEK            = 3,  // only seek
 };
 
 typedef struct ps_codec {
@@ -1661,11 +1661,6 @@ static pj_status_t ps_codec_decode_whole(pjmedia_vid_codec *codec,
 
 
 
-
-
-
-
-
 static pj_status_t check_ps_codec_valid(ps_codec *ppc) {
     PJ_ASSERT_RETURN(ppc->pkt_idx < ppc->pkt_count, PJ_EINVAL);
     if (ppc->current_buf == NULL || ppc->packets[ppc->pkt_idx].size == 0) {
@@ -1797,135 +1792,118 @@ static pj_status_t op_ps_codec(ps_codec *ppc, pj_size_t len, enum ps_codec_op op
 static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                                        ps_codec      *ppc)
 {
-//    int len = payload_len;
-//    pj_uint8_t * payload_buf = payload;
-//
-//    ps_private *ff = (ps_private*)codec->codec_data;
-//
-//    while (len > 4) {
-//        if (CHECK_START_CODE_PREFIX(payload_buf)) {
-//            switch (*(payload_buf+3)) {
-//                case 0xBA: // pack header start code
-//                    // ps pack header, length is 14
-//                    CHECK_BUFFER_SIZE("pack header", 14);
-//                    int pack_stuffing_length = (*(payload_buf + 13) & 0x07);
-//                    int pack_header_len = 14 + pack_stuffing_length;
-//                    CHECK_BUFFER_SIZE("pack stuffing header", pack_header_len);
-//
-//                    len -= pack_header_len;
-//                    payload_buf += pack_header_len;
-//                    break;
-//
-//                case 0xBB: // system header start code
-//                    CHECK_BUFFER_SIZE("system header", 6);
-//                    int system_header_len = 6 + GET_BUFFER_LENGTH(payload_buf + 4);
-//                    CHECK_BUFFER_SIZE("system header len", system_header_len);
-//
-//                    len -= system_header_len;
-//                    payload_buf += system_header_len;
-//                    break;
-//
-//                case 0xBC: // program stream map start code
-//                    CHECK_BUFFER_SIZE("program stream map", 6);
-//                    int program_stream_map_len = 6 + GET_BUFFER_LENGTH(payload_buf + 4);
-//                    CHECK_BUFFER_SIZE("program stream map len", program_stream_map_len);
-//
-//                    len -= program_stream_map_len;
-//                    payload_buf += program_stream_map_len;
-//                    break;
-//
-//                case 0xE0: // pes video header start code
-//                    CHECK_BUFFER_SIZE("pes video header", 9);
-//                    int pes_packet_length = GET_BUFFER_LENGTH(payload_buf + 4);
-//                    int pes_header_data_length = *(payload_buf + 8);
-//                    int pes_header_length = 6 + 2 + 1 + pes_header_data_length;
-//                    CHECK_BUFFER_SIZE("pes video header len", pes_header_length);
-//
-//                    len -= pes_header_length;
-//                    payload_buf += pes_header_length;
-//                    int video_data_len = pes_packet_length - 2 - 1 - pes_header_data_length;
-//
-//                    // NAL start code is 0x00, 0x00, 0x01, change from 4 bit to 3 bit
-//                    *expected_video_len += video_data_len;
-//
-//                    if (CHECK_NAL_START_CODE(payload_buf)) {
-//                        // NAL start code is 0x00, 0x00, 0x01, change from 4 bit to 3 bit
-//                        *expected_video_len -= 1;
-//
-//                        if (ff->desc->unpacketize) {
-//                            pj_status_t ret = (*ff->desc->unpacketize)(ff, payload_buf + 4, video_data_len < len ? video_data_len - 4 : len - 4, bits, bits_len, bits_pos);
-//                            if (ret != PJ_SUCCESS) {
-//                                PJ_LOG(2, (THIS_FILE, "Unpacketize error: %d", ret));
-//                            }
-//                        }
-//
-//                        if (video_data_len <= len) {
-//                            len -= video_data_len;
-//                            payload_buf += video_data_len;
-//                        } else {
-//                            // have copy all payload to buf
-//                            return PJ_SUCCESS;
-//                        }
-//                    } else {
-//                        pj_uint8_t * p = bits + (*bits_pos);
-//                        pj_memcpy(p, payload_buf, len);
-//                        *bits_pos += len;
-//
-//                        len -= len;
-//                        payload_buf += len;
-//                    }
-//
-//                    break;
-//
-//                case 0xC0: // pes audio header start code
-//                    CHECK_BUFFER_SIZE("pes audio header", 9);
-//                    int audio_pes_packet_length = GET_BUFFER_LENGTH(payload_buf + 4);
-//                    int audio_pes_header_data_length = *(payload_buf + 8);
-//                    int audio_pes_header_length = 6 + 2 + 1 + audio_pes_header_data_length;
-//                    CHECK_BUFFER_SIZE("pes audio header len", audio_pes_header_length);
-//
-//                    len -= audio_pes_header_length;
-//                    payload_buf += audio_pes_header_length;
-//                    int audio_data_len = audio_pes_packet_length - 2 - 1 - audio_pes_header_data_length;
-//
-//                    if (len != audio_data_len) {
-//                        PJ_LOG(1, ("Audio package data len is error, length in header: %d, actual: %d", audio_data_len, len));
-//                    }
-//
-//                    // break; // skip audio ?
-//                    return PJ_SUCCESS;
-//
-//                case 0xBD: // ps tail header start code
-//                    CHECK_BUFFER_SIZE("ps tail header", 6);
-//                    int program_stream_tail_len = 6 + GET_BUFFER_LENGTH(payload_buf + 4);
-//                    CHECK_BUFFER_SIZE("ps tail header len", program_stream_tail_len);
-//
-//                    len -= program_stream_tail_len;
-//                    payload_buf += program_stream_tail_len;
-//                    break;
-//                default:
-//                    PJ_LOG(1, (THIS_FILE, "Unknown payload type: %x, len: %d", *payload_buf+3, len));
-//                    return PJ_EBUG;
-//            }
-//        } else {
-//            if (*expected_video_len == *bits_pos) {
-//                PJ_LOG(3, (THIS_FILE, "expected len %d equals bits_pos %d, but have buf len %d", *expected_video_len, *bits_pos, len));
-//                return PJ_ENOTSUP;
-//            }
-//
-//            int payload_data_len = len;
-//            if (*expected_video_len - *bits_pos < len) {
-//                payload_data_len = *expected_video_len - *bits_pos;
-//            }
-//            // this is the video pes stream
-//            pj_uint8_t * p = bits + (*bits_pos);
-//            pj_memcpy(p, payload_buf, payload_data_len);
-//            *bits_pos += payload_data_len;
-//
-//            len -= payload_data_len;
-//            payload_buf += payload_data_len;
-//        }
-//    }
+    PJ_ASSERT_RETURN(ppc->current_buf != NULL, PJ_EINVAL);
+
+    pj_uint8_t * buf = NULL;
+
+    ps_private *ff = (ps_private*)codec->codec_data;
+
+    int total_video_pes_len = 0;
+
+    while (ppc->current_buf != NULL) {
+        PJ_ASSERT_RETURN(op_ps_codec(ppc, 4, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS, PJ_EINVAL);
+
+        if (CHECK_START_CODE_PREFIX(buf)) {
+            switch (*(buf+3)) {
+                case 0xBA: // pack header start code
+                    // ps pack header, length is 14 -> 4 + 10
+                    PJ_ASSERT_RETURN(op_ps_codec(ppc, 10, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS, PJ_EINVAL);
+                    int pack_stuffing_length = (*(buf + 9) & 0x07);
+                    PJ_ASSERT_RETURN(op_ps_codec(ppc, pack_stuffing_length, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS, PJ_EINVAL);
+                    break;
+
+                case 0xBB: // system header start code
+                    PJ_ASSERT_RETURN(op_ps_codec(ppc, 2, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS, PJ_EINVAL);
+                    int system_header_len = pj_ntohs(*buf);
+                    PJ_ASSERT_RETURN(op_ps_codec(ppc, system_header_len, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS, PJ_EINVAL);
+                    break;
+
+                case 0xBC: // program stream map start code
+                    PJ_ASSERT_RETURN(op_ps_codec(ppc, 2, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS, PJ_EINVAL);
+                    int program_stream_map_len = pj_ntohs(*buf);
+                    PJ_ASSERT_RETURN(op_ps_codec(ppc, program_stream_map_len, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS, PJ_EINVAL);
+                    break;
+
+                case 0xE0: // pes video header start code
+                    PJ_ASSERT_RETURN(op_ps_codec(ppc, 2, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS, PJ_EINVAL);
+                    int video_pes_packet_length = pj_ntohs(*buf);
+
+                    PJ_ASSERT_RETURN(op_ps_codec(ppc, 3, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS, PJ_EINVAL);
+                    int video_pes_header_data_length = *(buf + 2);
+
+                    // skip video pes header
+                    PJ_ASSERT_RETURN(op_ps_codec(ppc, video_pes_header_data_length, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS, PJ_EINVAL);
+
+                    // copy video data
+                    int video_data_len = video_pes_packet_length - 2 - 1 - video_pes_header_data_length;
+
+                    // NAL start code is 0x00, 0x00, 0x01, change from 4 bit to 3 bit
+                    total_video_pes_len += video_data_len;
+
+                    PJ_ASSERT_RETURN(op_ps_codec(ppc, 4, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS, PJ_EINVAL);
+                    video_data_len -= 4;
+                    if (CHECK_NAL_START_CODE(buf)) {
+                        // NAL start code is 0x00, 0x00, 0x01, change from 4 bit to 3 bit
+                        total_video_pes_len -= 1;
+
+                        bool has_more_pkt_in_current_frame = video_data_len < ppc->remain_buf_len;
+                        int do_unpack_len = has_more_pkt_in_current_frame ? video_data_len : ppc->remain_buf_len;
+
+                        if (ff->desc->unpacketize) {
+                            pj_status_t ret = (*ff->desc->unpacketize)(ff, ppc->current_buf, do_unpack_len,
+                                              ppc->dec_buf, ppc->dec_buf_size, &ppc->dec_data_len);
+                            if (ret != PJ_SUCCESS) {
+                                PJ_LOG(2, (THIS_FILE, "Unpacketize error: %d", ret));
+                            }
+                            PJ_ASSERT_RETURN(op_ps_codec(ppc, do_unpack_len, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS, PJ_EINVAL);
+                        }
+
+                        if (has_more_pkt_in_current_frame) {
+                            continue;
+                        } else {
+                            PJ_ASSERT_RETURN(op_ps_codec(ppc, video_data_len - do_unpack_len, PS_CODEC_OP_COPY, NULL) != PJ_SUCCESS, PJ_EINVAL);
+                        }
+                    } else {
+                        pj_memcpy(ppc->dec_buf + ppc->dec_data_len , buf, 4);
+                        ppc->dec_data_len += 4;
+                        PJ_ASSERT_RETURN(op_ps_codec(ppc, video_data_len, PS_CODEC_OP_COPY, NULL) != PJ_SUCCESS, PJ_EINVAL);
+                    }
+
+                    break;
+
+                case 0xC0: // pes audio header start code
+                    PJ_ASSERT_RETURN(op_ps_codec(ppc, 2, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS, PJ_EINVAL);
+                    int audio_pes_packet_length = pj_ntohs(*buf);
+
+                    PJ_ASSERT_RETURN(op_ps_codec(ppc, 3, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS, PJ_EINVAL);
+                    int audio_pes_header_data_length = *(buf + 2);
+
+                    // skip audio pes header
+                    PJ_ASSERT_RETURN(op_ps_codec(ppc, audio_pes_header_data_length, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS, PJ_EINVAL);
+
+                    // skip audio pes data
+                    int audio_data_len = audio_pes_packet_length - 2 - 1 - audio_pes_header_data_length;
+                    PJ_ASSERT_RETURN(op_ps_codec(ppc, audio_data_len, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS, PJ_EINVAL);
+                    break;
+
+                case 0xBD: // ps tail header start code
+                    PJ_ASSERT_RETURN(op_ps_codec(ppc, 2, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS, PJ_EINVAL);
+                    int program_stream_tail_len = pj_ntohs(*buf);
+                    PJ_ASSERT_RETURN(op_ps_codec(ppc, program_stream_tail_len, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS, PJ_EINVAL);
+                    break;
+                default:
+                    PJ_LOG(1, (THIS_FILE, "Unknown payload type: %x, len: %d", *buf+3, len));
+                    return PJ_EBUG;
+            }
+        } else {
+            int idx = ppc->pkt_idx;
+            PJ_LOG(3, (THIS_FILE, "ps decode get error start code. ts: %d, pkt_cnt: %d, pkt_idx: %d, remain_buf_len: %d, rtp_seq: %d, pre_seq: %d",
+                                        ppc->packets[idx].timestamp.u64, ppc->pkt_count, idx, ppc->remain_buf_len,
+                                        ppc->packets[idx].rtp_seq, idx > 0 ? ppc->packets[idx].rtp_seq : -1));
+
+            return PJ_EINVAL;
+        }
+    }
 
     return PJ_SUCCESS;
 }
