@@ -13,6 +13,8 @@
 
 #define THIS_FILE   "ps_codecs.c"
 
+#define TRACE_PS   0
+
 #define LIBAVCODEC_VER_AT_LEAST(major,minor)  (LIBAVCODEC_VERSION_MAJOR > major || \
                                               (LIBAVCODEC_VERSION_MAJOR == major && \
                                                LIBAVCODEC_VERSION_MINOR >= minor))
@@ -1370,14 +1372,21 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                     // break; // skip audio ?
                     return PJ_SUCCESS;
 
+                case 0xBD: // ps tail header start code
+                    CHECK_BUFFER_SIZE(6);
+                    int program_stream_tail_len = 6 + GET_BUFFER_LENGTH(payload_buf + 4);
+                    CHECK_BUFFER_SIZE(program_stream_tail_len);
+
+                    len -= program_stream_tail_len;
+                    payload_buf += program_stream_tail_len;
+                    break;
                 default:
-                    PJ_LOG(1, (THIS_FILE, "Unknown payload type: %x", *payload_buf));
+                    PJ_LOG(1, (THIS_FILE, "Unknown payload type: %x, len: %d", *payload_buf+3, len));
                     return PJ_EBUG;
             }
         } else {
             if (*expected_video_len == *bits_pos) {
-                PJ_LOG(3, (THIS_FILE, "expected len %d equals bits_pos %d, but have buf len %d, buf prefix: %x%x%x%x",
-                *expected_video_len, *bits_pos, len, payload_buf, payload_buf+1, payload_buf+2, payload_buf+3));
+                PJ_LOG(3, (THIS_FILE, "expected len %d equals bits_pos %d, but have buf len %d", *expected_video_len, *bits_pos, len));
                 return PJ_ENOTSUP;
             }
 
@@ -1805,15 +1814,18 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
                 break;
             }
 
+#ifdef TRACE_PS
             if (packets[i].size == 0) {
                 PJ_LOG(3,(THIS_FILE, "ps_codec_decode pkt empty. ts: %d, pkt_cnt: %d, pkt_idx: %d, rtp_seq: %d, pre_seq: %d",
                     packets[i].timestamp.u64, pkt_count, i, packets[i].rtp_seq, i > 0 ? packets[i-1].rtp_seq : -1));
             }
+#endif // TRACE_PS
 
             status = ps_unpacketize(codec, packets[i].buf, packets[i].size,
                                     ff->dec_buf, ff->dec_buf_size,
                                     &whole_len, &expected_video_len);
             if (status != PJ_SUCCESS) {
+#ifdef TRACE_PS
                 FILE *fptr;
                 char filename[256];
                 sprintf(filename, "./%d_%d.bin", packets[i].timestamp.u64, i);
@@ -1822,6 +1834,7 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
                    fwrite(packets[i].buf, packets[i].size, 1, fptr);
                    fclose(fptr);
                 }
+#endif // TRACE_PS
 
                 PJ_PERROR(3,(THIS_FILE, status, "Unpacketize error. ts: %d, idx: %d, rtp_seq: %d", packets[i].timestamp.u64, i, packets[i].rtp_seq));
             }
