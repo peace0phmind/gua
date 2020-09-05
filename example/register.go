@@ -50,7 +50,8 @@ func main() {
 	}
 
 	epc := gua.NewEndPointConfig()
-	epc.LogConfig().SetLevel(6)
+	epc.LogConfig().SetLevel(5)
+	epc.LogConfig().SetConsoleLevel(4)
 
 	if err := guaCtx.Init(epc); err != nil {
 		fatal(err)

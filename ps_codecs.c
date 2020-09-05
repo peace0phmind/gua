@@ -1810,8 +1810,16 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
                                     ff->dec_buf, ff->dec_buf_size,
                                     &whole_len, &expected_video_len);
             if (status != PJ_SUCCESS) {
-                PJ_PERROR(5,(THIS_FILE, status, "Unpacketize error"));
-                continue;
+                FILE *fptr;
+                char filename[256];
+                sprintf(filename, "./%d_%d.bin", packets[i].timestamp.u64, i);
+
+                if ((fptr = fopen(filename,"ab")) != NULL){
+                   fwrite(packets[i].buf, packets[i].size, 1, fptr);
+                   fclose(fptr);
+                }
+
+                PJ_PERROR(4,(THIS_FILE, status, "Unpacketize error. ts: %d, idx: %d", packets[i].timestamp.u64, i));
             }
         }
 
