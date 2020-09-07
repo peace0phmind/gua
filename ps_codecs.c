@@ -1670,7 +1670,7 @@ static pj_status_t check_ps_codec_valid(ps_codec *ppc) {
         int idx = ppc->pkt_idx;
         PJ_LOG(3,(THIS_FILE, "ps decode pkt empty. ts: %d, pkt_cnt: %d, pkt_idx: %d, rtp_seq: %d, pre_seq: %d",
                             ppc->packets[idx].timestamp.u64, ppc->pkt_count, idx,
-                            ppc->packets[idx].rtp_seq, idx > 0 ? ppc->packets[idx].rtp_seq : -1));
+                            ppc->packets[idx].rtp_seq, idx > 0 ? ppc->packets[idx-1].rtp_seq : -1));
 #endif // TRACE_PS
         return PJ_EINVAL;
     }
@@ -1757,7 +1757,7 @@ static pj_status_t op_ps_codec(ps_codec *ppc, pj_size_t len, enum ps_codec_op op
                         int idx = ppc->pkt_idx;
                         PJ_LOG(2, (THIS_FILE, "ps decode at the end of packet. ts: %d, pkt_cnt: %d, pkt_idx: %d, rtp_seq: %d, pre_seq: %d, remain_len: %d",
                                                     ppc->packets[idx].timestamp.u64, ppc->pkt_count, idx,
-                                                    ppc->packets[idx].rtp_seq, idx > 0 ? ppc->packets[idx].rtp_seq : -1, remain_len));
+                                                    ppc->packets[idx].rtp_seq, idx > 0 ? ppc->packets[idx-1].rtp_seq : -1, remain_len));
                         return PJ_EEOF;
                     }
                 } else {
@@ -1793,7 +1793,7 @@ static pj_status_t op_ps_codec(ps_codec *ppc, pj_size_t len, enum ps_codec_op op
 #define LOG_PS_CODEC_INFO(lvl, msg) idx = ppc->pkt_idx; \
                 PJ_LOG(lvl, (THIS_FILE, "%s ts: %d, pkt_cnt: %d, pkt_idx: %d, remain_buf_len: %d, rtp_seq: %d, pre_seq: %d", msg, \
                                                     ppc->packets[idx].timestamp.u64, ppc->pkt_count, idx, ppc->remain_buf_len, \
-                                                    ppc->packets[idx].rtp_seq, idx > 0 ? ppc->packets[idx].rtp_seq : -1))
+                                                    ppc->packets[idx].rtp_seq, idx > 0 ? ppc->packets[idx-1].rtp_seq : -1))
 
 static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                                        ps_codec      *ppc)
