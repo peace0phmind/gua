@@ -153,7 +153,7 @@ typedef struct ps_codec {
     // under is for copy op
     pj_uint8_t    *dec_buf;
     pj_size_t     dec_buf_size;
-    pj_size_t     dec_data_len;
+    unsigned     dec_data_len;
 } ps_codec;
 
 
@@ -1783,12 +1783,6 @@ static pj_status_t op_ps_codec(ps_codec *ppc, pj_size_t len, enum ps_codec_op op
 #define CHECK_START_CODE_PREFIX(buf) (*(buf+0) == 0x00 && *(buf+1) == 0x00 && *(buf+2) == 0x01)
 #define CHECK_NAL_START_CODE(buf) (*(buf+0) == 0x00 && *(buf+1) == 0x00 && *(buf+2) == 0x00 && *(buf+3) == 0x01)
 
-#define GET_BUFFER_LENGTH(header_length) ((((*(header_length))<<8) | (*(header_length+1))) & 0xFFFF)
-#define CHECK_BUFFER_SIZE(type, min) {if (min > len){ \
-    PJ_LOG(2, (THIS_FILE, "Buffer '%s' size %d is smaller than min lenght: %d", type, len, min));  \
-    return PJ_ETOOSMALL;}}
-
-
 static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                                        ps_codec      *ppc)
 {
@@ -1799,6 +1793,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
     ps_private *ff = (ps_private*)codec->codec_data;
 
     int total_video_pes_len = 0;
+    int idx = ppc->pkt_idx;
 
     while (ppc->current_buf != NULL) {
         PJ_ASSERT_RETURN(op_ps_codec(ppc, 4, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS, PJ_EINVAL);
@@ -1846,7 +1841,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                         // NAL start code is 0x00, 0x00, 0x01, change from 4 bit to 3 bit
                         total_video_pes_len -= 1;
 
-                        bool has_more_pkt_in_current_frame = video_data_len < ppc->remain_buf_len;
+                        pj_bool_t has_more_pkt_in_current_frame = video_data_len < ppc->remain_buf_len;
                         int do_unpack_len = has_more_pkt_in_current_frame ? video_data_len : ppc->remain_buf_len;
 
                         if (ff->desc->unpacketize) {
@@ -1892,11 +1887,13 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                     PJ_ASSERT_RETURN(op_ps_codec(ppc, program_stream_tail_len, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS, PJ_EINVAL);
                     break;
                 default:
-                    PJ_LOG(1, (THIS_FILE, "Unknown payload type: %x, len: %d", *buf+3, len));
+                    idx = ppc->pkt_idx;
+                    PJ_LOG(1, (THIS_FILE, "Unknown payload type: %x, ts: %d, idx:%d, len: %d", *buf+3,
+                            ppc->packets[idx].timestamp.u64, idx, ppc->remain_buf_len));
                     return PJ_EBUG;
             }
         } else {
-            int idx = ppc->pkt_idx;
+            idx = ppc->pkt_idx;
             PJ_LOG(3, (THIS_FILE, "ps decode get error start code. ts: %d, pkt_cnt: %d, pkt_idx: %d, remain_buf_len: %d, rtp_seq: %d, pre_seq: %d",
                                         ppc->packets[idx].timestamp.u64, ppc->pkt_count, idx, ppc->remain_buf_len,
                                         ppc->packets[idx].rtp_seq, idx > 0 ? ppc->packets[idx].rtp_seq : -1));
