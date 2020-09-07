@@ -2043,7 +2043,7 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
             PJ_LOG(3, (THIS_FILE, "ps_codec_decode_whole err.ts: %d pkg_count: %d, buf len is %d, expect len: %d, real len: %d",
                                 whole_frm.timestamp, pkt_count,  whole_frm.size, ps.total_video_pes_len, ps.dec_data_len));
         } else {
-            if (whole_frm.timestamp % 180000 == 0) {
+            if ((whole_frm.timestamp.u64 % 180000) == 0) {
                 // key frame
                 PJ_LOG(3, (THIS_FILE, "Decode key frame success. ts: %d", whole_frm.timestamp));
             }
