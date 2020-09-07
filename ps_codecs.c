@@ -150,6 +150,7 @@ typedef struct ps_codec {
     pj_size_t     remain_buf_len;
     pj_uint8_t    temp_buf[MAX_GET_OR_SKIP_BUF_SIZE];
     pj_size_t     temp_data_len;
+    pj_bool_t     is_i_frame;
     // under is for copy op
     pj_uint8_t    *dec_buf;
     pj_size_t     dec_buf_size;
@@ -1844,6 +1845,8 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                         LOG_PS_CODEC_INFO(3, "Skip system header error.");
                         return PJ_EINVAL;
                     }
+
+                    ppc->is_i_frame = PJ_TRUE;
                     break;
 
                 case 0xBC: // program stream map start code
@@ -1858,6 +1861,12 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                         LOG_PS_CODEC_INFO(3, "Skip program stream map error.");
                         return PJ_EINVAL;
                     }
+
+                    if (ppc->is_i_frame) {
+                        LOG_PS_CODEC_INFO(3, "I frame miss system header.");
+                    }
+
+                    ppc->is_i_frame = PJ_TRUE;
                     break;
 
                 case 0xE0: // pes video header start code
@@ -2015,6 +2024,7 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
         ps.dec_buf = ff->dec_buf;
         ps.dec_buf_size = ff->dec_buf_size;
         ps.dec_data_len = 0;
+        ps.is_i_frame = PJ_FALSE;
 
         status = ps_unpacketize(codec, &ps);
         if (status != PJ_SUCCESS) {
@@ -2043,8 +2053,7 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
             PJ_LOG(3, (THIS_FILE, "ps_codec_decode_whole err.ts: %d, pkg_count: %d, buf len is %d, expect len: %d, real len: %d",
                                 whole_frm.timestamp.u64, pkt_count,  whole_frm.size, ps.total_video_pes_len, ps.dec_data_len));
         } else {
-            if ((whole_frm.timestamp.u64 % 180000) == 0) {
-                // key frame
+            if (ps.is_i_frame) {
                 PJ_LOG(3, (THIS_FILE, "Decode key frame success. ts: %d, pkt_cnt: %d, remain len: %d, idx: %d, expect len: %d, real len: %d, beg_seq: %d, end_seq: %d",
                            whole_frm.timestamp.u64, pkt_count, ps.remain_buf_len,
                            ps.pkt_idx, ps.total_video_pes_len, ps.dec_data_len,
