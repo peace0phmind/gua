@@ -147,7 +147,7 @@ typedef struct ps_codec {
     pj_size_t     pkt_count;
     int           pkt_idx;
     pj_uint8_t*   current_buf;
-    pj_size_t     c;
+    pj_size_t     remain_buf_len;
     pj_uint8_t    temp_buf[MAX_GET_OR_SKIP_BUF_SIZE];
     pj_size_t     temp_data_len;
     // under is for copy op
