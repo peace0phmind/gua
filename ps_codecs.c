@@ -1836,7 +1836,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                         return PJ_EINVAL;
                     }
 
-                    int system_header_len = pj_ntohs(*buf);
+                    int system_header_len = pj_ntohs(*(pj_uint16_t*)buf);
 
                     if (op_ps_codec(ppc, system_header_len, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS) {
                         LOG_PS_CODEC_INFO(3, "Skip system header error.");
@@ -1850,7 +1850,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                         return PJ_EINVAL;
                     }
 
-                    int program_stream_map_len = pj_ntohs(*buf);
+                    int program_stream_map_len = pj_ntohs(*(pj_uint16_t*)buf);
 
                     if (op_ps_codec(ppc, program_stream_map_len, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS) {
                         LOG_PS_CODEC_INFO(3, "Skip program stream map error.");
@@ -1864,7 +1864,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                         return PJ_EINVAL;
                     }
 
-                    int video_pes_packet_length = pj_ntohs(*buf);
+                    int video_pes_packet_length = pj_ntohs(*(pj_uint16_t*)buf);
 
                     if (op_ps_codec(ppc, 3, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS) {
                         LOG_PS_CODEC_INFO(3, "Get video pes header data length error.");
@@ -1935,7 +1935,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                         return PJ_EINVAL;
                     }
 
-                    int audio_pes_packet_length = pj_ntohs(*buf);
+                    int audio_pes_packet_length = pj_ntohs(*(pj_uint16_t*)buf);
 
                     if (op_ps_codec(ppc, 3, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS) {
                         LOG_PS_CODEC_INFO(3, "Get pes audio header data length error.");
@@ -1964,7 +1964,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                         return PJ_EINVAL;
                     }
 
-                    int program_stream_tail_len = pj_ntohs(*buf);
+                    int program_stream_tail_len = pj_ntohs(*(pj_uint16_t*)buf);
 
                     if (op_ps_codec(ppc, program_stream_tail_len, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS) {
                         LOG_PS_CODEC_INFO(3, "Skip pes tail data error.");
