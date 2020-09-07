@@ -2045,8 +2045,7 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
         } else {
             if ((whole_frm.timestamp.u64 % 180000) == 0) {
                 // key frame
-                PJ_LOG(3, (THIS_FILE, "Decode key frame success. ts: %d, pkt_cnt: %d, remain len: %d," +
-                                        "idx: %d,  expect len: %d, real len: %d, beg_seq: %d, end_seq: %d",
+                PJ_LOG(3, (THIS_FILE, "Decode key frame success. ts: %d, pkt_cnt: %d, remain len: %d, idx: %d, expect len: %d, real len: %d, beg_seq: %d, end_seq: %d",
                            whole_frm.timestamp.u64, pkt_count, ps.remain_buf_len,
                            ps.pkt_idx, ps.total_video_pes_len, ps.dec_data_len,
                            packets[0].rtp_seq, packets[ps.pkt_idx].rtp_seq));
