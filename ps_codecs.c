@@ -153,7 +153,9 @@ typedef struct ps_codec {
     // under is for copy op
     pj_uint8_t    *dec_buf;
     pj_size_t     dec_buf_size;
-    unsigned     dec_data_len;
+    unsigned      dec_data_len;
+    // out for except pes video buf len
+    unsigned      total_video_pes_len;
 } ps_codec;
 
 
@@ -1805,7 +1807,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
 
     pj_uint8_t * buf = NULL;
     ps_private *ff = (ps_private*)codec->codec_data;
-    int total_video_pes_len = 0;
+    ppc->total_video_pes_len = 0;
 
     while (ppc->current_buf != NULL) {
         if (op_ps_codec(ppc, 4, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS) {
@@ -1883,7 +1885,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                     int video_data_len = video_pes_packet_length - 2 - 1 - video_pes_header_data_length;
 
                     // NAL start code is 0x00, 0x00, 0x01, change from 4 bit to 3 bit
-                    total_video_pes_len += video_data_len;
+                    ppc->total_video_pes_len += video_data_len;
 
                     if (op_ps_codec(ppc, 4, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS) {
                         LOG_PS_CODEC_INFO(3, "Get nal start code error.");
@@ -1893,7 +1895,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                     video_data_len -= 4;
                     if (CHECK_NAL_START_CODE(buf)) {
                         // NAL start code is 0x00, 0x00, 0x01, change from 4 bit to 3 bit
-                        total_video_pes_len -= 1;
+                        ppc->total_video_pes_len -= 1;
 
                         pj_bool_t has_more_pkt_in_current_frame = video_data_len < ppc->remain_buf_len;
                         int do_unpack_len = has_more_pkt_in_current_frame ? video_data_len : ppc->remain_buf_len;
@@ -2027,8 +2029,8 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
 //            }
 #endif // TRACE_PS
             int idx = ps.pkt_idx;
-            PJ_PERROR(3,(THIS_FILE, status, "Unpacketize error. ts: %d, idx: %d, rtp_seq: %d",
-                packets[idx].timestamp.u64, idx, packets[idx].rtp_seq));
+            PJ_PERROR(3,(THIS_FILE, status, "Unpacketize error. ts: %d, idx: %d, rtp_seq: %d, expect len: %d, real len: %d",
+                packets[idx].timestamp.u64, idx, packets[idx].rtp_seq, ps.total_video_pes_len, ps.dec_data_len));
         }
 
         whole_frm.buf = ff->dec_buf;
@@ -2038,8 +2040,8 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
 
         status = ps_codec_decode_whole(codec, &whole_frm, out_size, output);
         if (status != PJ_SUCCESS) {
-            PJ_LOG(3, (THIS_FILE, "ps_codec_decode_whole err.ts: %d pkg_count: %d, buf len is %d",
-                                whole_frm.timestamp, pkt_count,  whole_frm.size));
+            PJ_LOG(3, (THIS_FILE, "ps_codec_decode_whole err.ts: %d pkg_count: %d, buf len is %d, expect len: %d, real len: %d",
+                                whole_frm.timestamp, pkt_count,  whole_frm.size, ps.total_video_pes_len, ps.dec_data_len));
         }
         return status;
     }
