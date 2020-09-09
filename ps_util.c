@@ -77,7 +77,7 @@ void ps_add_ref()
     if (ps_ref_cnt++ == 0) {
         av_log_set_level(AV_LOG_ERROR);
         av_log_set_callback(&ps_log_cb);
-        av_register_all();
+//        av_register_all();
     }
 }
 

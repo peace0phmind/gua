@@ -517,7 +517,7 @@ PJ_DEF(pj_status_t) pjmedia_codec_ps_vid_init(pjmedia_vid_codec_mgr *mgr,
     }
 
     ps_add_ref();
-    avcodec_register_all();
+//    avcodec_register_all();
 
     /* Enum FFMPEG codecs */
     for (c=av_codec_next(NULL); c; c=av_codec_next(c)) {
