@@ -51,6 +51,10 @@ void set_on_reg_state2(pjsua_config *c) {
 	c->cb.on_reg_state2 = callback_on_reg_state2;
 }
 
+extern void on_decode_cb(ps_codec *psCodec);
+void set_on_decode_cb(pjmedia_ps_codec_callback *cb) {
+	cb->on_decode_cb = on_decode_cb;
+}
 */
 import "C"
 
@@ -235,6 +239,12 @@ func (gc *GuaContext) Init(epc *endPointConfig) error {
 
 	if ret := C.pjmedia_codec_ps_vid_init(nil, &C.pjsua_var.cp.factory); ret != C.PJ_SUCCESS {
 		return errors.New(fmt.Sprintf("Error initializing ffmpeg library: %d", ret))
+	}
+
+	psCodecCb := (*C.pjmedia_ps_codec_callback)(C.malloc(C.sizeof_struct_pjmedia_ps_codec_callback))
+	C.set_on_decode_cb(psCodecCb)
+	if ret := C.pjmedia_codec_ps_vid_init_cb(psCodecCb); ret != C.PJ_SUCCESS {
+		return errors.New(fmt.Sprintf("Error initializing ps codec callback: %d", ret))
 	}
 
 	return nil

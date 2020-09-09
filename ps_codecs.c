@@ -129,36 +129,16 @@ static struct ps_factory {
     pj_pool_factory             *pf;
     pj_pool_t                        *pool;
     pj_mutex_t                        *mutex;
+    pjmedia_ps_codec_callback *ps_codec_callback;
 } ps_factory;
 
-
 typedef struct ps_codec_desc ps_codec_desc;
-
-#define MAX_GET_OR_SKIP_BUF_SIZE       2000
 
 enum ps_codec_op {
 	PS_CODEC_OP_GET             = 1,  // get and seek
 	PS_CODEC_OP_COPY            = 2,  // copy and seek
 	PS_CODEC_OP_SEEK            = 3,  // only seek
 };
-
-typedef struct ps_codec {
-    pjmedia_frame *packets;
-    pj_size_t     pkt_count;
-    int           pkt_idx;
-    pj_uint8_t*   current_buf;
-    pj_size_t     remain_buf_len;
-    pj_uint8_t    temp_buf[MAX_GET_OR_SKIP_BUF_SIZE];
-    pj_size_t     temp_data_len;
-    pj_bool_t     is_i_frame;
-    // under is for copy op
-    pj_uint8_t    *dec_buf;
-    pj_size_t     dec_buf_size;
-    unsigned      dec_data_len;
-    // out for except pes video buf len
-    unsigned      total_video_pes_len;
-} ps_codec;
-
 
 /* PS codecs private data. */
 typedef struct ps_private
@@ -505,6 +485,8 @@ PJ_DEF(pj_status_t) pjmedia_codec_ps_vid_init(pjmedia_vid_codec_mgr *mgr,
     ps_factory.mgr = mgr;
     ps_factory.pf = pf;
 
+    ps_factory.ps_codec_callback = NULL;
+
     pool = pj_pool_create(pf, "ps codec factory", 256, 256, NULL);
     if (!pool) {
         return PJ_ENOMEM;
@@ -750,6 +732,11 @@ PJ_DEF(pj_status_t) pjmedia_codec_ps_vid_init(pjmedia_vid_codec_mgr *mgr,
 on_error:
     pj_pool_release(pool);
     return status;
+}
+
+PJ_DECL(pj_status_t) pjmedia_codec_ps_vid_init_cb(pjmedia_ps_codec_callback *cb) {
+    ps_factory.ps_codec_callback = cb;
+    return PJ_SUCCESS;
 }
 
 /*
@@ -1862,7 +1849,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                         return PJ_EINVAL;
                     }
 
-                    if (ppc->is_i_frame) {
+                    if (ppc->is_i_frame == PJ_FALSE) {
                         LOG_PS_CODEC_INFO(3, "I frame miss system header.");
                     }
 
@@ -2048,16 +2035,31 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
         whole_frm.timestamp = output->timestamp = packets[ps.pkt_idx].timestamp;
         whole_frm.bit_info = 0;
 
-        status = ps_codec_decode_whole(codec, &whole_frm, out_size, output);
-        if (status != PJ_SUCCESS) {
-            PJ_LOG(3, (THIS_FILE, "ps_codec_decode_whole err.ts: %d, pkg_count: %d, buf len is %d, expect len: %d, real len: %d",
-                                whole_frm.timestamp.u64, pkt_count,  whole_frm.size, ps.total_video_pes_len, ps.dec_data_len));
+        if(ps_factory.ps_codec_callback != NULL && ps_factory.ps_codec_callback->on_decode_cb != NULL) {
+            if(ps.is_i_frame) {
+                ps_factory.ps_codec_callback->on_decode_cb(&ps);
+                PJ_LOG(3,
+                       (THIS_FILE, "Decode send i frame to callback. ts: %d, pkt_cnt: %d, remain len: %d, idx: %d, expect len: %d, real len: %d, beg_seq: %d, end_seq: %d",
+                               whole_frm.timestamp.u64, pkt_count, ps.remain_buf_len,
+                               ps.pkt_idx, ps.total_video_pes_len, ps.dec_data_len,
+                               packets[0].rtp_seq, packets[ps.pkt_idx].rtp_seq));
+            }
+
+            return PJ_SUCCESS;
         } else {
-            if (ps.is_i_frame) {
-                PJ_LOG(3, (THIS_FILE, "Decode key frame success. ts: %d, pkt_cnt: %d, remain len: %d, idx: %d, expect len: %d, real len: %d, beg_seq: %d, end_seq: %d",
-                           whole_frm.timestamp.u64, pkt_count, ps.remain_buf_len,
-                           ps.pkt_idx, ps.total_video_pes_len, ps.dec_data_len,
-                           packets[0].rtp_seq, packets[ps.pkt_idx].rtp_seq));
+            status = ps_codec_decode_whole(codec, &whole_frm, out_size, output);
+            if (status != PJ_SUCCESS) {
+                PJ_LOG(3,
+                       (THIS_FILE, "ps_codec_decode_whole err.ts: %d, pkg_count: %d, buf len is %d, expect len: %d, real len: %d",
+                               whole_frm.timestamp.u64, pkt_count, whole_frm.size, ps.total_video_pes_len, ps.dec_data_len));
+            } else {
+                if (ps.is_i_frame) {
+                    PJ_LOG(3,
+                           (THIS_FILE, "Decode key frame success. ts: %d, pkt_cnt: %d, remain len: %d, idx: %d, expect len: %d, real len: %d, beg_seq: %d, end_seq: %d",
+                                   whole_frm.timestamp.u64, pkt_count, ps.remain_buf_len,
+                                   ps.pkt_idx, ps.total_video_pes_len, ps.dec_data_len,
+                                   packets[0].rtp_seq, packets[ps.pkt_idx].rtp_seq));
+                }
             }
         }
         return status;
