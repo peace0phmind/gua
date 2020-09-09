@@ -32,7 +32,7 @@ func init() {
 		log.Println("unable to find mpeg4 decode codec")
 		return
 	}
-	decoder[gmf.AV_CODEC_ID_H264] = codec
+	decoder[gmf.AV_CODEC_ID_MPEG4] = codec
 
 	codec, err = gmf.FindEncoder(gmf.AV_CODEC_ID_MJPEG)
 	if err != nil {
