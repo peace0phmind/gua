@@ -68,6 +68,24 @@ static const struct ps_codec_table_t
     {PJMEDIA_FORMAT_MJPEG,          AV(CODEC_ID_MJPEG)}
 };
 
+static const struct ps_psm_codec_id_table_t
+{
+    pj_uint8_t	stream_id;
+    pj_uint8_t  stream_type;
+    enum AVCodecID   codec_id;
+} ps_psm_codec_id_table[] =
+{
+    { 0xE0, 0x1B, AV_CODEC_ID_H264},
+    { 0xE0, 0x10, AV_CODEC_ID_MPEG4},
+    { 0xE0, 0x80, AV_CODEC_ID_NONE}, // SVAC
+
+    { 0xC0, 0x90, AV_CODEC_ID_NONE}, // 711
+    { 0xC0, 0x92, AV_CODEC_ID_ADPCM_G722},
+    { 0xC0, 0x93, AV_CODEC_ID_G723_1},
+    { 0xC0, 0x99, AV_CODEC_ID_G729},
+    { 0xC0, 0x9B, AV_CODEC_ID_NONE}, // SVAC
+};
+
 static int ps_ref_cnt;
 
 static void ps_log_cb(void* ptr, int level, const char* fmt, va_list vl);
@@ -163,8 +181,7 @@ pj_status_t PixelFormat_to_ps_format_id(enum AVPixelFormat pf,
     return PJ_ENOTFOUND;
 }
 
-pj_status_t ps_format_id_to_CodecID(pjmedia_format_id fmt_id,
-                                         unsigned *codec_id)
+pj_status_t ps_format_id_to_CodecID(pjmedia_format_id fmt_id, unsigned *codec_id)
 {
     unsigned i;
     for (i=0; i<PJ_ARRAY_SIZE(ps_codec_table); ++i) {
@@ -187,6 +204,23 @@ pj_status_t CodecID_to_ps_format_id(unsigned codec_id,
         const struct ps_codec_table_t *t = &ps_codec_table[i];
         if ((unsigned)t->codec_id == codec_id) {
             if (fmt_id) *fmt_id = t->id;
+            return PJ_SUCCESS;
+        }
+    }
+
+    return PJ_ENOTFOUND;
+}
+
+pj_status_t set_ps_codec_id_from_psm_info(ps_codec *ppc, pj_uint8_t *buf) {
+    unsigned i;
+    for (i = 0; i < PJ_ARRAY_SIZE(ps_psm_codec_id_table); ++i) {
+        const struct ps_psm_codec_id_table_t *t = &ps_psm_codec_id_table[i];
+        if (t->stream_id == *(buf+1) && t->stream_type == *buf) {
+            if (t->stream_id == 0xE0) {
+                ppc->video_codec_id = t->codec_id;
+            } else {
+                ppc->audio_codec_id = t->codec_id;
+            }
             return PJ_SUCCESS;
         }
     }

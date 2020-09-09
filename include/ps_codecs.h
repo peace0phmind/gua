@@ -4,6 +4,7 @@
 
 #include <pjmedia-codec/types.h>
 #include <pjmedia/vid_codec.h>
+#include <libavcodec/avcodec.h>
 
 PJ_BEGIN_DECL
 
@@ -24,7 +25,9 @@ typedef struct ps_codec {
     unsigned      dec_data_len;
     // out for except pes video buf len
     unsigned      total_video_pes_len;
-
+    // ffmpeg codec
+    enum AVCodecID     video_codec_id;
+    enum AVCodecID     audio_codec_id;
 } ps_codec;
 
 /**

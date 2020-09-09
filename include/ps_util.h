@@ -36,6 +36,7 @@
 
 #include <libavutil/avutil.h>
 #include <libavcodec/avcodec.h>
+#include "ps_codecs.h"
 
 
 
@@ -56,5 +57,7 @@ pj_status_t ps_format_id_to_CodecID(pjmedia_format_id fmt_id,
 
 pj_status_t CodecID_to_ps_format_id(unsigned codec_id,
 					 pjmedia_format_id *fmt_id);
+
+pj_status_t set_ps_codec_id_from_psm_info(ps_codec *ppc, pj_uint8_t *buf);
 
 #endif /* __PJMEDIA_FFMPEG_UTIL_H__ */

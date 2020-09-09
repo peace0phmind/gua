@@ -1837,6 +1837,12 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                     break;
 
                 case 0xBC: // program stream map start code
+                    if (ppc->is_i_frame == PJ_FALSE) {
+                        LOG_PS_CODEC_INFO(3, "I frame miss system header.");
+                    }
+
+                    ppc->is_i_frame = PJ_TRUE;
+
                     if (op_ps_codec(ppc, 2, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS) {
                         LOG_PS_CODEC_INFO(3, "Get program stream map length error.");
                         return PJ_EINVAL;
@@ -1844,16 +1850,69 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
 
                     int program_stream_map_len = pj_ntohs(*(pj_uint16_t*)buf);
 
-                    if (op_ps_codec(ppc, program_stream_map_len, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS) {
-                        LOG_PS_CODEC_INFO(3, "Skip program stream map error.");
+                    if (op_ps_codec(ppc, 2, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS) {
+                        LOG_PS_CODEC_INFO(3, "Skip program stream map params error.");
                         return PJ_EINVAL;
                     }
 
-                    if (ppc->is_i_frame == PJ_FALSE) {
-                        LOG_PS_CODEC_INFO(3, "I frame miss system header.");
+                    program_stream_map_len -= 2;
+                    /*****************  program_stream_info_len ******************/
+                    if (op_ps_codec(ppc, 2, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS) {
+                        LOG_PS_CODEC_INFO(3, "Get program stream info length error.");
+                        return PJ_EINVAL;
+                    }
+                    program_stream_map_len -= 2;
+                    int program_stream_info_len = pj_ntohs(*(pj_uint16_t*)buf);
+                    if (op_ps_codec(ppc, program_stream_info_len, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS) {
+                        LOG_PS_CODEC_INFO(3, "Skip program stream info error.");
+                        return PJ_EINVAL;
+                    }
+                    program_stream_map_len -= program_stream_info_len;
+
+                    /*****************  check elementary_stream_map ******************/
+                    if (op_ps_codec(ppc, 2, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS) {
+                        LOG_PS_CODEC_INFO(3, "Get elementary stream map length error.");
+                        return PJ_EINVAL;
+                    }
+                    program_stream_map_len -= 2;
+                    int elementary_stream_map_len = pj_ntohs(*(pj_uint16_t*)buf);
+
+                    while (elementary_stream_map_len > 4) {
+                        if (op_ps_codec(ppc, 2, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS) {
+                            LOG_PS_CODEC_INFO(3, "Get elementary stream map type error.");
+                            return PJ_EINVAL;
+                        }
+                        elementary_stream_map_len -= 2;
+                        program_stream_map_len -= 2;
+
+                        if (set_ps_codec_id_from_psm_info(ppc, buf) != PJ_SUCCESS) {
+                            PJ_LOG(1, (THIS_FILE, "Unsupported stream type: %x, and stream id: %x", *buf, *(buf+1)));
+                            return PJ_EINVAL;
+                        }
+
+                        if (op_ps_codec(ppc, 2, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS) {
+                            LOG_PS_CODEC_INFO(3, "Get elementary stream map type len error.");
+                            return PJ_EINVAL;
+                        }
+                        int elementary_stream_info_length = pj_ntohs(*(pj_uint16_t*)buf);
+                        if (op_ps_codec(ppc, elementary_stream_info_length, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS) {
+                            LOG_PS_CODEC_INFO(3, "Skip elementary stream info length error.");
+                            return PJ_EINVAL;
+                        }
+
+                        elementary_stream_map_len -= elementary_stream_info_length;
+                        program_stream_map_len -= elementary_stream_info_length;
                     }
 
-                    ppc->is_i_frame = PJ_TRUE;
+                    if (program_stream_map_len != 4) {
+                        LOG_PS_CODEC_INFO(3, "Program stream map length error, crc must be 4 len.");
+                    } else {
+                        if (op_ps_codec(ppc, 4, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS) {
+                            LOG_PS_CODEC_INFO(3, "Skip elementary stream info length error.");
+                            return PJ_EINVAL;
+                        }
+                    }
+
                     break;
 
                 case 0xE0: // pes video header start code
