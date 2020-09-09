@@ -1877,7 +1877,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                     program_stream_map_len -= 2;
                     int elementary_stream_map_len = pj_ntohs(*(pj_uint16_t*)buf);
 
-                    while (elementary_stream_map_len > 4) {
+                    while (elementary_stream_map_len > 0) {
                         if (op_ps_codec(ppc, 2, PS_CODEC_OP_GET, &buf) != PJ_SUCCESS) {
                             LOG_PS_CODEC_INFO(3, "Get elementary stream map type error.");
                             return PJ_EINVAL;
@@ -1894,6 +1894,9 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                             LOG_PS_CODEC_INFO(3, "Get elementary stream map type len error.");
                             return PJ_EINVAL;
                         }
+                        elementary_stream_map_len -=2;
+                        program_stream_map_len -= 2;
+
                         int elementary_stream_info_length = pj_ntohs(*(pj_uint16_t*)buf);
                         if (op_ps_codec(ppc, elementary_stream_info_length, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS) {
                             LOG_PS_CODEC_INFO(3, "Skip elementary stream info length error.");
