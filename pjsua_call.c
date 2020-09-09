@@ -400,24 +400,44 @@ static int call_get_secure_level(pjsua_call *call)
 }
 */
 
-void pjsua_process_subject_data(pjsip_inv_session *inv,
-				      			pjsip_tx_data **p_tdata) 
+// gb28181
+void pjsua_process_subject_data(pjsua_acc *acc, pjsip_inv_session *inv,
+                                pjsip_tx_data **p_tdata)
 {
-	// TODO pengyi
-	// char subjectBuf[1024];
+    char *tmp = (char*) pj_pool_alloc(inv->pool, PJSIP_MAX_URL_SIZE);
 
-	pj_str_t target = pj_str("sip:34020000001320000001@58.213.90.194:5061");
-    (*p_tdata)->msg->line.req.uri = pjsip_parse_uri((*p_tdata)->pool, target.ptr, target.slen, 0);
+    pjsip_uri *reg_uri = pjsip_parse_uri(inv->pool, acc->cfg.reg_uri.ptr, acc->cfg.reg_uri.slen, 0);
+    pjsip_sip_uri *sip_reg_uri = (pjsip_sip_uri*)pjsip_uri_get_uri(reg_uri);
+    pjsip_sip_uri *sip_target_uri = (pjsip_sip_uri*)pjsip_uri_get_uri(inv->dlg->target);
 
-	pj_str_t subject = pj_str("Subject");
-	pj_str_t value = pj_str("34020000001320000001:1,34020000002060000001:1");
+    int len = pj_ansi_snprintf(tmp, PJSIP_MAX_URL_SIZE,
+                           "%s:%.*s%s%.*s:%d",
+                           ((acc->is_sips)? "sips" : "sip"),
+                           (int)sip_target_uri->user.slen,
+                           sip_target_uri->user.ptr,
+                           (acc->user_part.slen? "@" : ""),
+                           (int)sip_reg_uri->host.slen,
+                           sip_reg_uri->host.ptr,
+                           sip_reg_uri->port);
 
-	pjsip_generic_string_hdr* hdr = pjsip_generic_string_hdr_create(inv->dlg->pool, &subject, &value);
+    (*p_tdata)->msg->line.req.uri = pjsip_parse_uri((*p_tdata)->pool, tmp, len, 0);
 
-	pjsip_msg_add_hdr((*p_tdata)->msg, (pjsip_hdr *)hdr);
-	// pj_ansi_snprintf(subjectBuf, 1024, "%s:1,%s:1", )
-	// PJ_LOG(4, ("%s,", inv->dlg->target ));
+    pj_str_t subject = pj_str("Subject");
+    pj_str_t value;
 
+    char *buf = (char*) pj_pool_alloc(inv->pool, 1024);
+    len = pj_ansi_snprintf(buf, 1024,
+                           "%.*s:1,%.*s:1",
+                           (int)sip_target_uri->user.slen,
+                           sip_target_uri->user.ptr,
+                           (int)acc->user_part.slen,
+                           acc->user_part.ptr);
+
+    pj_strdup2_with_null(acc->pool, &value, buf);
+
+    pjsip_generic_string_hdr* hdr = pjsip_generic_string_hdr_create(inv->pool, &subject, &value);
+
+    pjsip_msg_add_hdr((*p_tdata)->msg, (pjsip_hdr *)hdr);
 }
 
 /* Outgoing call callback when media transport creation is completed. */
@@ -547,7 +567,8 @@ on_make_call_med_tp_complete2(pjsua_call_id call_id,
 	goto on_error;
     }
 
-	pjsua_process_subject_data(inv, &tdata);
+    // gb28181
+	pjsua_process_subject_data(acc, inv, &tdata);
 
     /* Add additional headers etc */
 
