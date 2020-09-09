@@ -1911,7 +1911,7 @@ static pj_status_t  ps_unpacketize(pjmedia_vid_codec *codec,
                         LOG_PS_CODEC_INFO(3, "Program stream map length error, crc must be 4 len.");
                     } else {
                         if (op_ps_codec(ppc, 4, PS_CODEC_OP_SEEK, NULL) != PJ_SUCCESS) {
-                            LOG_PS_CODEC_INFO(3, "Skip elementary stream info length error.");
+                            LOG_PS_CODEC_INFO(3, "Skip elementary stream info crc error.");
                             return PJ_EINVAL;
                         }
                     }
