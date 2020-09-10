@@ -2081,7 +2081,7 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
         if (strlen(output->buf) > 0) {
             for (int i = 0; i < pjsua_var.call_cnt; i++) {
                 if (pj_strcmp2(&pjsua_var.calls[i].cname, output->buf) == 0) {
-                    pj_str_t *remote_info = &pjsua_var.calls[0].inv->dlg->remote.info_str;
+                    pj_str_t *remote_info = &pjsua_var.calls[i].inv->dlg->remote.info_str;
                     if (remote_info->slen +1 < PJSIP_MAX_URL_SIZE) {
                         pj_memcpy(ps.callee_id, remote_info->ptr, remote_info->slen);
                         ps.callee_id[remote_info->slen] = 0;
