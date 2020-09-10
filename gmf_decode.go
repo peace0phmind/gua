@@ -54,7 +54,12 @@ func on_decode_cb(ps *C.ps_codec) {
 
 	log.Printf("buf: %v, size: %v, pkt: %v\n", ps.dec_buf, ps.dec_data_len, pkt)
 
-	codec := decoder[gmf.AV_CODEC_ID_H264]
+	codec := decoder[int(ps.video_codec_id)]
+
+	if codec == nil {
+		log.Printf("unable to find decoder from ps video codec: %v\n", ps.video_codec_id)
+		return
+	}
 
 	var cc *gmf.CodecCtx
 	if cc = gmf.NewCodecCtx(codec); cc == nil {
