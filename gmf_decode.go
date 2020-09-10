@@ -6,17 +6,20 @@ package gua
 */
 import "C"
 import (
-	"fmt"
 	"github.com/peace0phmind/gmf"
 	"log"
-	"os"
 	"syscall"
 	"unsafe"
 )
 
+type DecodedDataConsumer interface {
+	OnConsumer(string, []byte)
+}
+
 var (
-	decoder map[int]*gmf.Codec = nil
-	encoder *gmf.Codec         = nil
+	decoder  map[int]*gmf.Codec  = nil
+	encoder  *gmf.Codec          = nil
+	consumer DecodedDataConsumer = nil
 )
 
 func init() {
@@ -45,9 +48,19 @@ func init() {
 	encoder = codec
 }
 
+func InitConsumer(ddc DecodedDataConsumer) {
+	consumer = ddc
+}
+
 //export on_decode_cb
 func on_decode_cb(ps *C.ps_codec) {
-	log.Printf("recv decode callback. remain len: %d, idx: %d, expect len: %d, real len: %d\n",
+	if len(ps.callee_id) == 0 {
+		log.Println("callee id is nil, ignore this data...")
+	}
+
+	calleeId := C.GoString(&ps.callee_id[0])
+
+	log.Printf("recv decode from callee[%s]. remain len: %d, idx: %d, expect len: %d, real len: %d\n", calleeId,
 		ps.remain_buf_len, ps.pkt_idx, ps.total_video_pes_len, ps.dec_data_len)
 
 	pkt := gmf.NewPacketWith(unsafe.Pointer(ps.dec_buf), int(ps.dec_data_len))
@@ -153,29 +166,9 @@ func on_decode_cb(ps *C.ps_codec) {
 	}
 
 	for _, op := range packets {
-		writeFile(op.Data())
+		if consumer != nil {
+			consumer.OnConsumer(calleeId, op.Data())
+		}
 		op.Free()
 	}
-}
-
-const format = "./%03d.jpeg"
-
-var fileCount int
-
-func writeFile(b []byte) {
-	name := fmt.Sprintf(format, fileCount)
-
-	fp, err := os.OpenFile(name, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatalf("%s\n", err)
-	}
-
-	if n, err := fp.Write(b); err != nil {
-		log.Fatalf("%s\n", err)
-	} else {
-		log.Printf("%d bytes written to '%s'", n, name)
-	}
-
-	fp.Close()
-	fileCount++
 }

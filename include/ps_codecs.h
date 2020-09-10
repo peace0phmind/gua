@@ -36,7 +36,7 @@ typedef struct ps_codec {
     enum AVCodecID     video_codec_id;
     enum AVCodecID     audio_codec_id;
     // cname
-    pj_uint8_t    callee_id[PJSIP_MAX_URL_SIZE];
+    char    callee_id[PJSIP_MAX_URL_SIZE];
 } ps_codec;
 
 /**

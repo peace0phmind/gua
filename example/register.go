@@ -40,10 +40,42 @@ func (sc *ServiceCallback) OnRegState2(acc *gua.Account, accId gua.AccountId, in
 
 	if accountInfo.RegIsActive() {
 		acc.MakePlay("sip:34020000001320000001@32010100")
+		acc.MakePlay("sip:34020000001320000002@32010100")
 	}
 }
 
+const format = "./%s-%03d.jpeg"
+
+var fileCount = map[string]int{}
+
+func writeFile(calleeId string, b []byte) {
+	name := fmt.Sprintf(format, calleeId, fileCount[calleeId])
+
+	fp, err := os.OpenFile(name, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatalf("%s\n", err)
+	}
+
+	if n, err := fp.Write(b); err != nil {
+		log.Fatalf("%s\n", err)
+	} else {
+		log.Printf("%d bytes written to '%s'", n, name)
+	}
+
+	fp.Close()
+	fileCount[calleeId]++
+}
+
+type SaveToFileDecodedDataConsumer struct{}
+
+func (stf *SaveToFileDecodedDataConsumer) OnConsumer(calleeId string, data []byte) {
+	writeFile(calleeId, data)
+}
+
 func main() {
+	// consume decoded data
+	gua.InitConsumer(&SaveToFileDecodedDataConsumer{})
+
 	guaCtx := gua.NewGuaContext(NewServiceCallback())
 	if err := guaCtx.Create(); err != nil {
 		fatal(err)
