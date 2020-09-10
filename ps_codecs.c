@@ -10,6 +10,9 @@
 #include <pj/string.h>
 #include <pj/os.h>
 
+#include "include/pjsua.h"
+#include "include/pjsua_internal.h"
+
 
 #define THIS_FILE   "ps_codecs.c"
 
@@ -2074,6 +2077,18 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
         ps.dec_buf_size = ff->dec_buf_size;
         ps.dec_data_len = 0;
         ps.is_i_frame = PJ_FALSE;
+        // copy cname from buf
+        if (strlen(output->buf) > 0) {
+            for (int i = 0; i < pjsua_var.call_cnt; i++) {
+                if (pj_strcmp2(&pjsua_var.calls[i].cname, output->buf) == 0) {
+                    pj_str_t *remote_info = &pjsua_var.calls[0].inv->dlg->remote.info_str;
+                    if (remote_info->slen +1 < PJSIP_MAX_URL_SIZE) {
+                        pj_memcpy(ps.callee_id, remote_info->ptr, remote_info->slen);
+                        ps.callee_id[remote_info->slen] = 0;
+                    }
+                }
+            }
+        }
 
         status = ps_unpacketize(codec, &ps);
         if (status != PJ_SUCCESS) {

@@ -5,10 +5,17 @@
 #include <pjmedia-codec/types.h>
 #include <pjmedia/vid_codec.h>
 #include <libavcodec/avcodec.h>
+#include <pjsip/sip_uri.h>
+
 
 PJ_BEGIN_DECL
 
 #define MAX_GET_OR_SKIP_BUF_SIZE       2000
+
+#ifndef PJSIP_MAX_URL_SIZE
+#define PJSIP_MAX_URL_SIZE 256
+#endif
+
 
 typedef struct ps_codec {
     pjmedia_frame *packets;
@@ -28,6 +35,8 @@ typedef struct ps_codec {
     // ffmpeg codec
     enum AVCodecID     video_codec_id;
     enum AVCodecID     audio_codec_id;
+    // cname
+    pj_uint8_t    callee_id[PJSIP_MAX_URL_SIZE];
 } ps_codec;
 
 /**
