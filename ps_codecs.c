@@ -470,7 +470,7 @@ PJ_DEF(pj_status_t) pjmedia_codec_ps_vid_init(pjmedia_vid_codec_mgr *mgr,
                                                   pj_pool_factory *pf)
 {
     pj_pool_t *pool;
-    AVCodec *c;
+    const AVCodec *c;
     pj_status_t status;
     unsigned i;
 
@@ -504,8 +504,9 @@ PJ_DEF(pj_status_t) pjmedia_codec_ps_vid_init(pjmedia_vid_codec_mgr *mgr,
     ps_add_ref();
 //    avcodec_register_all();
 
+    void *iter = NULL;
     /* Enum FFMPEG codecs */
-    for (c=av_codec_next(NULL); c; c=av_codec_next(c)) {
+    for (c=av_codec_iterate(&iter); c; c=av_codec_iterate(&iter)) {
         ps_codec_desc *desc;
         pjmedia_format_id fmt_id;
         int codec_info_idx;
