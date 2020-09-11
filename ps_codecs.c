@@ -84,16 +84,16 @@ static pj_status_t  ps_codec_modify(pjmedia_vid_codec *codec,
                                         const pjmedia_vid_codec_param *attr );
 static pj_status_t  ps_codec_get_param(pjmedia_vid_codec *codec,
                                            pjmedia_vid_codec_param *param);
-static pj_status_t ps_codec_encode_begin(pjmedia_vid_codec *codec,
-                                             const pjmedia_vid_encode_opt *opt,
-                                             const pjmedia_frame *input,
-                                             unsigned out_size,
-                                             pjmedia_frame *output,
-                                             pj_bool_t *has_more);
-static pj_status_t ps_codec_encode_more(pjmedia_vid_codec *codec,
-                                            unsigned out_size,
-                                            pjmedia_frame *output,
-                                            pj_bool_t *has_more);
+//static pj_status_t ps_codec_encode_begin(pjmedia_vid_codec *codec,
+//                                             const pjmedia_vid_encode_opt *opt,
+//                                             const pjmedia_frame *input,
+//                                             unsigned out_size,
+//                                             pjmedia_frame *output,
+//                                             pj_bool_t *has_more);
+//static pj_status_t ps_codec_encode_more(pjmedia_vid_codec *codec,
+//                                            unsigned out_size,
+//                                            pjmedia_frame *output,
+//                                            pj_bool_t *has_more);
 static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
                                         pj_size_t pkt_count,
                                         pjmedia_frame packets[],
@@ -108,8 +108,8 @@ static pjmedia_vid_codec_op ps_op =
     &ps_codec_close,
     &ps_codec_modify,
     &ps_codec_get_param,
-    &ps_codec_encode_begin,
-    &ps_codec_encode_more,
+    NULL,                  // &ps_codec_encode_begin,
+    NULL,                  // &ps_codec_encode_more,
     &ps_codec_decode,
     NULL
 };
@@ -605,13 +605,13 @@ PJ_DEF(pj_status_t) pjmedia_codec_ps_vid_init(pjmedia_vid_codec_mgr *mgr,
         /* Get ps encoder instance */
         if (AVCODEC_HAS_ENCODE(c) && !desc->enc) {
             desc->info.dir |= PJMEDIA_DIR_ENCODING;
-            desc->enc = c;
+            desc->enc = (AVCodec*)c;
         }
 
             /* Get ps decoder instance */
         if (AVCODEC_HAS_DECODE(c) && !desc->dec) {
             desc->info.dir |= PJMEDIA_DIR_DECODING;
-            desc->dec = c;
+            desc->dec = (AVCodec*)c;
         }
 
         /* Enable this codec when any ps codec instance are recognized
@@ -1276,382 +1276,382 @@ static pj_status_t  ps_packetize ( pjmedia_vid_codec *codec,
 /*
  * Encode frames.
  */
-static pj_status_t ps_codec_encode_whole(pjmedia_vid_codec *codec,
-                                             const pjmedia_vid_encode_opt *opt,
-                                             const pjmedia_frame *input,
-                                             unsigned output_buf_len,
-                                             pjmedia_frame *output)
-{
-    ps_private *ff = (ps_private*)codec->codec_data;
-    pj_uint8_t *p = (pj_uint8_t*)input->buf;
-    AVFrame avframe;
-    AVPacket avpacket;
-    int err, got_packet;
-    //AVRational src_timebase;
-    /* For some reasons (e.g: SSE/MMX usage), the avcodec_encode_video() must
-     * have stack aligned to 16 bytes. Let's try to be safe by preparing the
-     * 16-bytes aligned stack here, in case it's not managed by the ps.
-     */
-    PJ_ALIGN_DATA(pj_uint32_t i[4], 16);
+//static pj_status_t ps_codec_encode_whole(pjmedia_vid_codec *codec,
+//                                             const pjmedia_vid_encode_opt *opt,
+//                                             const pjmedia_frame *input,
+//                                             unsigned output_buf_len,
+//                                             pjmedia_frame *output)
+//{
+//    ps_private *ff = (ps_private*)codec->codec_data;
+//    pj_uint8_t *p = (pj_uint8_t*)input->buf;
+//    AVFrame avframe;
+//    AVPacket avpacket;
+//    int err, got_packet;
+//    //AVRational src_timebase;
+//    /* For some reasons (e.g: SSE/MMX usage), the avcodec_encode_video() must
+//     * have stack aligned to 16 bytes. Let's try to be safe by preparing the
+//     * 16-bytes aligned stack here, in case it's not managed by the ps.
+//     */
+//    PJ_ALIGN_DATA(pj_uint32_t i[4], 16);
+//
+//    if ((long)(pj_ssize_t)i & 0xF) {
+//        PJ_LOG(2,(THIS_FILE, "Stack alignment fails"));
+//    }
+//
+//    /* Check if encoder has been opened */
+//    PJ_ASSERT_RETURN(ff->enc_ctx, PJ_EINVALIDOP);
+//
+//    pj_bzero(&avframe, sizeof(avframe));
+//    av_frame_unref(&avframe);
+//
+//    // Let ps manage the timestamps
+//    /*
+//    src_timebase.num = 1;
+//    src_timebase.den = ff->desc->info.clock_rate;
+//    avframe.pts = av_rescale_q(input->timestamp.u64, src_timebase,
+//                               ff->enc_ctx->time_base);
+//    */
+//
+//    for (i[0] = 0; i[0] < ff->enc_vfi->plane_cnt; ++i[0]) {
+//        avframe.data[i[0]] = p;
+//        avframe.linesize[i[0]] = ff->enc_vafp.strides[i[0]];
+//        p += ff->enc_vafp.plane_bytes[i[0]];
+//    }
+//
+//    /* Force keyframe */
+//    if (opt && opt->force_keyframe) {
+//        avframe.pict_type = AV_PICTURE_TYPE_I;
+//    }
+//
+//    av_init_packet(&avpacket);
+//    avpacket.data = (pj_uint8_t*)output->buf;
+//    avpacket.size = output_buf_len;
+//
+//    err = avcodec_encode_video2(ff->enc_ctx, &avpacket, &avframe, &got_packet);
+//    if (!err && got_packet)
+//        err = avpacket.size;
+//
+//    if (err < 0) {
+//        print_ps_err(err);
+//        return PJMEDIA_CODEC_EFAILED;
+//    } else {
+//        pj_bool_t has_key_frame = PJ_FALSE;
+//        output->size = err;
+//        output->bit_info = 0;
+//
+//        has_key_frame = (avpacket.flags & AV_PKT_FLAG_KEY);
+//
+//        if (has_key_frame) {
+//            output->bit_info |= PJMEDIA_VID_FRM_KEYFRAME;
+//        }
+//    }
+//
+//    return PJ_SUCCESS;
+//}
 
-    if ((long)(pj_ssize_t)i & 0xF) {
-        PJ_LOG(2,(THIS_FILE, "Stack alignment fails"));
-    }
+//static pj_status_t ps_codec_encode_begin(pjmedia_vid_codec *codec,
+//                                             const pjmedia_vid_encode_opt *opt,
+//                                             const pjmedia_frame *input,
+//                                             unsigned out_size,
+//                                             pjmedia_frame *output,
+//                                             pj_bool_t *has_more)
+//{
+//    ps_private *ff = (ps_private*)codec->codec_data;
+//    pj_status_t status;
+//
+//    *has_more = PJ_FALSE;
+//
+//    if (ff->whole) {
+//        status = ps_codec_encode_whole(codec, opt, input, out_size, output);
+//    } else {
+//        pjmedia_frame whole_frm;
+//        const pj_uint8_t *payload;
+//        pj_size_t payload_len;
+//
+//        pj_bzero(&whole_frm, sizeof(whole_frm));
+//        whole_frm.buf = ff->enc_buf;
+//        whole_frm.size = ff->enc_buf_size;
+//        status = ps_codec_encode_whole(codec, opt, input,
+//                                       (unsigned)whole_frm.size,
+//                                       &whole_frm);
+//        if (status != PJ_SUCCESS) {
+//            return status;
+//        }
+//
+//        ff->enc_buf_is_keyframe = (whole_frm.bit_info &
+//                                   PJMEDIA_VID_FRM_KEYFRAME);
+//        ff->enc_frame_len = (unsigned)whole_frm.size;
+//        ff->enc_processed = 0;
+//        status = ps_packetize(codec, (pj_uint8_t*)whole_frm.buf,
+//                                  whole_frm.size, &ff->enc_processed,
+//                                  &payload, &payload_len);
+//        if (status != PJ_SUCCESS) {
+//            return status;
+//        }
+//
+//        if (out_size < payload_len) {
+//            return PJMEDIA_CODEC_EFRMTOOSHORT;
+//        }
+//
+//        output->type = PJMEDIA_FRAME_TYPE_VIDEO;
+//        pj_memcpy(output->buf, payload, payload_len);
+//        output->size = payload_len;
+//
+//        if (ff->enc_buf_is_keyframe) {
+//            output->bit_info |= PJMEDIA_VID_FRM_KEYFRAME;
+//        }
+//
+//        *has_more = (ff->enc_processed < ff->enc_frame_len);
+//    }
+//
+//    return status;
+//}
 
-    /* Check if encoder has been opened */
-    PJ_ASSERT_RETURN(ff->enc_ctx, PJ_EINVALIDOP);
-
-    pj_bzero(&avframe, sizeof(avframe));
-    av_frame_unref(&avframe);
-
-    // Let ps manage the timestamps
-    /*
-    src_timebase.num = 1;
-    src_timebase.den = ff->desc->info.clock_rate;
-    avframe.pts = av_rescale_q(input->timestamp.u64, src_timebase,
-                               ff->enc_ctx->time_base);
-    */
-
-    for (i[0] = 0; i[0] < ff->enc_vfi->plane_cnt; ++i[0]) {
-        avframe.data[i[0]] = p;
-        avframe.linesize[i[0]] = ff->enc_vafp.strides[i[0]];
-        p += ff->enc_vafp.plane_bytes[i[0]];
-    }
-
-    /* Force keyframe */
-    if (opt && opt->force_keyframe) {
-        avframe.pict_type = AV_PICTURE_TYPE_I;
-    }
-
-    av_init_packet(&avpacket);
-    avpacket.data = (pj_uint8_t*)output->buf;
-    avpacket.size = output_buf_len;
-
-    err = avcodec_encode_video2(ff->enc_ctx, &avpacket, &avframe, &got_packet);
-    if (!err && got_packet)
-        err = avpacket.size;
-
-    if (err < 0) {
-        print_ps_err(err);
-        return PJMEDIA_CODEC_EFAILED;
-    } else {
-        pj_bool_t has_key_frame = PJ_FALSE;
-        output->size = err;
-        output->bit_info = 0;
-
-        has_key_frame = (avpacket.flags & AV_PKT_FLAG_KEY);
-
-        if (has_key_frame) {
-            output->bit_info |= PJMEDIA_VID_FRM_KEYFRAME;
-        }
-    }
-
-    return PJ_SUCCESS;
-}
-
-static pj_status_t ps_codec_encode_begin(pjmedia_vid_codec *codec,
-                                             const pjmedia_vid_encode_opt *opt,
-                                             const pjmedia_frame *input,
-                                             unsigned out_size,
-                                             pjmedia_frame *output,
-                                             pj_bool_t *has_more)
-{
-    ps_private *ff = (ps_private*)codec->codec_data;
-    pj_status_t status;
-
-    *has_more = PJ_FALSE;
-
-    if (ff->whole) {
-        status = ps_codec_encode_whole(codec, opt, input, out_size, output);
-    } else {
-        pjmedia_frame whole_frm;
-        const pj_uint8_t *payload;
-        pj_size_t payload_len;
-
-        pj_bzero(&whole_frm, sizeof(whole_frm));
-        whole_frm.buf = ff->enc_buf;
-        whole_frm.size = ff->enc_buf_size;
-        status = ps_codec_encode_whole(codec, opt, input,
-                                       (unsigned)whole_frm.size,
-                                       &whole_frm);
-        if (status != PJ_SUCCESS) {
-            return status;
-        }
-
-        ff->enc_buf_is_keyframe = (whole_frm.bit_info &
-                                   PJMEDIA_VID_FRM_KEYFRAME);
-        ff->enc_frame_len = (unsigned)whole_frm.size;
-        ff->enc_processed = 0;
-        status = ps_packetize(codec, (pj_uint8_t*)whole_frm.buf,
-                                  whole_frm.size, &ff->enc_processed,
-                                  &payload, &payload_len);
-        if (status != PJ_SUCCESS) {
-            return status;
-        }
-
-        if (out_size < payload_len) {
-            return PJMEDIA_CODEC_EFRMTOOSHORT;
-        }
-
-        output->type = PJMEDIA_FRAME_TYPE_VIDEO;
-        pj_memcpy(output->buf, payload, payload_len);
-        output->size = payload_len;
-
-        if (ff->enc_buf_is_keyframe) {
-            output->bit_info |= PJMEDIA_VID_FRM_KEYFRAME;
-        }
-
-        *has_more = (ff->enc_processed < ff->enc_frame_len);
-    }
-
-    return status;
-}
-
-static pj_status_t ps_codec_encode_more(pjmedia_vid_codec *codec,
-                                            unsigned out_size,
-                                            pjmedia_frame *output,
-                                            pj_bool_t *has_more)
-{
-    ps_private *ff = (ps_private*)codec->codec_data;
-    const pj_uint8_t *payload;
-    pj_size_t payload_len;
-    pj_status_t status;
-
-    *has_more = PJ_FALSE;
-
-    if (ff->enc_processed >= ff->enc_frame_len) {
-        /* No more frame */
-        return PJ_EEOF;
-    }
-
-    status = ps_packetize(codec, (pj_uint8_t*)ff->enc_buf,
-                              ff->enc_frame_len, &ff->enc_processed,
-                              &payload, &payload_len);
-    if (status != PJ_SUCCESS) {
-        return status;
-    }
-
-    if (out_size < payload_len) {
-        return PJMEDIA_CODEC_EFRMTOOSHORT;
-    }
-
-    output->type = PJMEDIA_FRAME_TYPE_VIDEO;
-    pj_memcpy(output->buf, payload, payload_len);
-    output->size = payload_len;
-
-    if (ff->enc_buf_is_keyframe) {
-        output->bit_info |= PJMEDIA_VID_FRM_KEYFRAME;
-    }
-
-    *has_more = (ff->enc_processed < ff->enc_frame_len);
-
-    return PJ_SUCCESS;
-}
+//static pj_status_t ps_codec_encode_more(pjmedia_vid_codec *codec,
+//                                            unsigned out_size,
+//                                            pjmedia_frame *output,
+//                                            pj_bool_t *has_more)
+//{
+//    ps_private *ff = (ps_private*)codec->codec_data;
+//    const pj_uint8_t *payload;
+//    pj_size_t payload_len;
+//    pj_status_t status;
+//
+//    *has_more = PJ_FALSE;
+//
+//    if (ff->enc_processed >= ff->enc_frame_len) {
+//        /* No more frame */
+//        return PJ_EEOF;
+//    }
+//
+//    status = ps_packetize(codec, (pj_uint8_t*)ff->enc_buf,
+//                              ff->enc_frame_len, &ff->enc_processed,
+//                              &payload, &payload_len);
+//    if (status != PJ_SUCCESS) {
+//        return status;
+//    }
+//
+//    if (out_size < payload_len) {
+//        return PJMEDIA_CODEC_EFRMTOOSHORT;
+//    }
+//
+//    output->type = PJMEDIA_FRAME_TYPE_VIDEO;
+//    pj_memcpy(output->buf, payload, payload_len);
+//    output->size = payload_len;
+//
+//    if (ff->enc_buf_is_keyframe) {
+//        output->bit_info |= PJMEDIA_VID_FRM_KEYFRAME;
+//    }
+//
+//    *has_more = (ff->enc_processed < ff->enc_frame_len);
+//
+//    return PJ_SUCCESS;
+//}
 
 
-static pj_status_t check_decode_result(pjmedia_vid_codec *codec,
-                                       const pj_timestamp *ts,
-                                       pj_bool_t got_keyframe)
-{
-    ps_private *ff = (ps_private*)codec->codec_data;
-    pjmedia_video_apply_fmt_param *vafp = &ff->dec_vafp;
-    pjmedia_event event;
-
-    /* Check for format change.
-     * Decoder output format is set by libavcodec, in case it is different
-     * to the configured param.
-     */
-    if (ff->dec_ctx->pix_fmt != ff->expected_dec_fmt ||
-        ff->dec_ctx->width != (int)vafp->size.w ||
-        ff->dec_ctx->height != (int)vafp->size.h)
-    {
-        pjmedia_format_id new_fmt_id;
-        pj_status_t status;
-
-        /* Get current raw format id from ps decoder context */
-        status = PixelFormat_to_ps_format_id(ff->dec_ctx->pix_fmt,
-                                                  &new_fmt_id);
-        if (status != PJ_SUCCESS)
-            return status;
-
-        /* Update decoder format in param */
-                ff->param.dec_fmt.id = new_fmt_id;
-        ff->param.dec_fmt.det.vid.size.w = ff->dec_ctx->width;
-        ff->param.dec_fmt.det.vid.size.h = ff->dec_ctx->height;
-        ff->expected_dec_fmt = ff->dec_ctx->pix_fmt;
-
-        /* Re-init format info and apply-param of decoder */
-        ff->dec_vfi = pjmedia_get_video_format_info(NULL, ff->param.dec_fmt.id);
-        if (!ff->dec_vfi) {
-            return PJ_ENOTSUP;
-        }
-        pj_bzero(&ff->dec_vafp, sizeof(ff->dec_vafp));
-        ff->dec_vafp.size = ff->param.dec_fmt.det.vid.size;
-        ff->dec_vafp.buffer = NULL;
-        status = (*ff->dec_vfi->apply_fmt)(ff->dec_vfi, &ff->dec_vafp);
-        if (status != PJ_SUCCESS) {
-            return status;
-        }
-
-        /* Realloc buffer if necessary */
-        if (ff->dec_vafp.framebytes > ff->dec_buf_size) {
-            PJ_LOG(5,(THIS_FILE, "Reallocating decoding buffer %u --> %u",
-                       (unsigned)ff->dec_buf_size,
-                       (unsigned)ff->dec_vafp.framebytes));
-            ff->dec_buf_size = (unsigned)ff->dec_vafp.framebytes;
-            ff->dec_buf = pj_pool_alloc(ff->pool, ff->dec_buf_size);
-        }
-
-        /* Broadcast format changed event */
-        pjmedia_event_init(&event, PJMEDIA_EVENT_FMT_CHANGED, ts, codec);
-        event.data.fmt_changed.dir = PJMEDIA_DIR_DECODING;
-        pj_memcpy(&event.data.fmt_changed.new_fmt, &ff->param.dec_fmt,
-                  sizeof(ff->param.dec_fmt));
-        pjmedia_event_publish(NULL, codec, &event, 0);
-    }
-
-    /* Check for missing/found keyframe */
-    if (got_keyframe) {
-        pj_get_timestamp(&ff->last_dec_keyframe_ts);
-
-        /* Broadcast keyframe event */
-        pjmedia_event_init(&event, PJMEDIA_EVENT_KEYFRAME_FOUND, ts, codec);
-        pjmedia_event_publish(NULL, codec, &event, 0);
-    } else if (ff->last_dec_keyframe_ts.u64 == 0) {
-        /* Broadcast missing keyframe event */
-        pjmedia_event_init(&event, PJMEDIA_EVENT_KEYFRAME_MISSING, ts, codec);
-        pjmedia_event_publish(NULL, codec, &event, 0);
-    }
-
-    return PJ_SUCCESS;
-}
+//static pj_status_t check_decode_result(pjmedia_vid_codec *codec,
+//                                       const pj_timestamp *ts,
+//                                       pj_bool_t got_keyframe)
+//{
+//    ps_private *ff = (ps_private*)codec->codec_data;
+//    pjmedia_video_apply_fmt_param *vafp = &ff->dec_vafp;
+//    pjmedia_event event;
+//
+//    /* Check for format change.
+//     * Decoder output format is set by libavcodec, in case it is different
+//     * to the configured param.
+//     */
+//    if (ff->dec_ctx->pix_fmt != ff->expected_dec_fmt ||
+//        ff->dec_ctx->width != (int)vafp->size.w ||
+//        ff->dec_ctx->height != (int)vafp->size.h)
+//    {
+//        pjmedia_format_id new_fmt_id;
+//        pj_status_t status;
+//
+//        /* Get current raw format id from ps decoder context */
+//        status = PixelFormat_to_ps_format_id(ff->dec_ctx->pix_fmt,
+//                                                  &new_fmt_id);
+//        if (status != PJ_SUCCESS)
+//            return status;
+//
+//        /* Update decoder format in param */
+//                ff->param.dec_fmt.id = new_fmt_id;
+//        ff->param.dec_fmt.det.vid.size.w = ff->dec_ctx->width;
+//        ff->param.dec_fmt.det.vid.size.h = ff->dec_ctx->height;
+//        ff->expected_dec_fmt = ff->dec_ctx->pix_fmt;
+//
+//        /* Re-init format info and apply-param of decoder */
+//        ff->dec_vfi = pjmedia_get_video_format_info(NULL, ff->param.dec_fmt.id);
+//        if (!ff->dec_vfi) {
+//            return PJ_ENOTSUP;
+//        }
+//        pj_bzero(&ff->dec_vafp, sizeof(ff->dec_vafp));
+//        ff->dec_vafp.size = ff->param.dec_fmt.det.vid.size;
+//        ff->dec_vafp.buffer = NULL;
+//        status = (*ff->dec_vfi->apply_fmt)(ff->dec_vfi, &ff->dec_vafp);
+//        if (status != PJ_SUCCESS) {
+//            return status;
+//        }
+//
+//        /* Realloc buffer if necessary */
+//        if (ff->dec_vafp.framebytes > ff->dec_buf_size) {
+//            PJ_LOG(5,(THIS_FILE, "Reallocating decoding buffer %u --> %u",
+//                       (unsigned)ff->dec_buf_size,
+//                       (unsigned)ff->dec_vafp.framebytes));
+//            ff->dec_buf_size = (unsigned)ff->dec_vafp.framebytes;
+//            ff->dec_buf = pj_pool_alloc(ff->pool, ff->dec_buf_size);
+//        }
+//
+//        /* Broadcast format changed event */
+//        pjmedia_event_init(&event, PJMEDIA_EVENT_FMT_CHANGED, ts, codec);
+//        event.data.fmt_changed.dir = PJMEDIA_DIR_DECODING;
+//        pj_memcpy(&event.data.fmt_changed.new_fmt, &ff->param.dec_fmt,
+//                  sizeof(ff->param.dec_fmt));
+//        pjmedia_event_publish(NULL, codec, &event, 0);
+//    }
+//
+//    /* Check for missing/found keyframe */
+//    if (got_keyframe) {
+//        pj_get_timestamp(&ff->last_dec_keyframe_ts);
+//
+//        /* Broadcast keyframe event */
+//        pjmedia_event_init(&event, PJMEDIA_EVENT_KEYFRAME_FOUND, ts, codec);
+//        pjmedia_event_publish(NULL, codec, &event, 0);
+//    } else if (ff->last_dec_keyframe_ts.u64 == 0) {
+//        /* Broadcast missing keyframe event */
+//        pjmedia_event_init(&event, PJMEDIA_EVENT_KEYFRAME_MISSING, ts, codec);
+//        pjmedia_event_publish(NULL, codec, &event, 0);
+//    }
+//
+//    return PJ_SUCCESS;
+//}
 
 /*
  * Decode frame.
  */
-static pj_status_t ps_codec_decode_whole(pjmedia_vid_codec *codec,
-                                             const pjmedia_frame *input,
-                                             unsigned output_buf_len,
-                                             pjmedia_frame *output)
-{
-    ps_private *ff = (ps_private*)codec->codec_data;
-    AVFrame avframe;
-    AVPacket avpacket;
-    int err, got_picture;
-
-    /* Check if decoder has been opened */
-    PJ_ASSERT_RETURN(ff->dec_ctx, PJ_EINVALIDOP);
-
-    /* Reset output frame bit info */
-    output->bit_info = 0;
-
-    /* Validate output buffer size */
-    // Do this validation later after getting decoding result, where the real
-    // decoded size will be assured.
-    //if (ff->dec_vafp.framebytes > output_buf_len)
-        //return PJ_ETOOSMALL;
-
-    /* Init frame to receive the decoded data, the ps codec context will
-     * automatically provide the decoded buffer (single buffer used for the
-     * whole decoding session, and seems to be freed when the codec context
-     * closed).
-     */
-
-    pj_bzero(&avframe, sizeof(avframe));
-    av_frame_unref(&avframe);
-
-    /* Init packet, the container of the encoded data */
-    av_init_packet(&avpacket);
-    avpacket.data = (pj_uint8_t*)input->buf;
-    avpacket.size = (int)input->size;
-
-    /* ps warns:
-     * - input buffer padding, at least FF_INPUT_BUFFER_PADDING_SIZE
-     * - null terminated
-     * Normally, encoded buffer is allocated more than needed, so lets just
-     * bzero the input buffer end/pad, hope it will be just fine.
-     */
-    pj_bzero(avpacket.data+avpacket.size, FF_INPUT_BUFFER_PADDING_SIZE);
-
-    output->bit_info = 0;
-    output->timestamp = input->timestamp;
-
-#if LIBAVCODEC_VER_AT_LEAST(52,72)
-    //avpacket.flags = AV_PKT_FLAG_KEY;
-#else
-    avpacket.flags = 0;
-#endif
-
-#if LIBAVCODEC_VER_AT_LEAST(52,72)
-    err = avcodec_decode_video2(ff->dec_ctx, &avframe,
-                                &got_picture, &avpacket);
-#else
-    err = avcodec_decode_video(ff->dec_ctx, &avframe,
-                               &got_picture, avpacket.data, avpacket.size);
-#endif
-    if (err < 0) {
-        pjmedia_event event;
-
-        output->type = PJMEDIA_FRAME_TYPE_NONE;
-        output->size = 0;
-        print_ps_err(err);
-
-        /* Broadcast missing keyframe event */
-        pjmedia_event_init(&event, PJMEDIA_EVENT_KEYFRAME_MISSING,
-                           &input->timestamp, codec);
-        pjmedia_event_publish(NULL, codec, &event, 0);
-
-        return PJMEDIA_CODEC_EBADBITSTREAM;
-    } else if (got_picture) {
-        pjmedia_video_apply_fmt_param *vafp = &ff->dec_vafp;
-        pj_uint8_t *q = (pj_uint8_t*)output->buf;
-        unsigned i;
-        pj_status_t status;
-
-        /* Check decoding result, e.g: see if the format got changed,
-         * keyframe found/missing.
-         */
-        status = check_decode_result(codec, &input->timestamp, avframe.key_frame);
-        if (status != PJ_SUCCESS) {
-            return status;
-        }
-
-        /* Check provided buffer size */
-        if (vafp->framebytes > output_buf_len) {
-            return PJ_ETOOSMALL;
-        }
-
-        /* Get the decoded data */
-        for (i = 0; i < ff->dec_vfi->plane_cnt; ++i) {
-            pj_uint8_t *p = avframe.data[i];
-
-            /* The decoded data may contain padding */
-            if (avframe.linesize[i]!=vafp->strides[i]) {
-                /* Padding exists, copy line by line */
-                pj_uint8_t *q_end;
-
-                q_end = q+vafp->plane_bytes[i];
-                while(q < q_end) {
-                    pj_memcpy(q, p, vafp->strides[i]);
-                    q += vafp->strides[i];
-                    p += avframe.linesize[i];
-                }
-            } else {
-                /* No padding, copy the whole plane */
-                pj_memcpy(q, p, vafp->plane_bytes[i]);
-                q += vafp->plane_bytes[i];
-            }
-        }
-
-        output->type = PJMEDIA_FRAME_TYPE_VIDEO;
-        output->size = vafp->framebytes;
-    } else {
-        output->type = PJMEDIA_FRAME_TYPE_NONE;
-        output->size = 0;
-    }
-
-    return PJ_SUCCESS;
-}
+//static pj_status_t ps_codec_decode_whole(pjmedia_vid_codec *codec,
+//                                             const pjmedia_frame *input,
+//                                             unsigned output_buf_len,
+//                                             pjmedia_frame *output)
+//{
+//    ps_private *ff = (ps_private*)codec->codec_data;
+//    AVFrame avframe;
+//    AVPacket avpacket;
+//    int err, got_picture;
+//
+//    /* Check if decoder has been opened */
+//    PJ_ASSERT_RETURN(ff->dec_ctx, PJ_EINVALIDOP);
+//
+//    /* Reset output frame bit info */
+//    output->bit_info = 0;
+//
+//    /* Validate output buffer size */
+//    // Do this validation later after getting decoding result, where the real
+//    // decoded size will be assured.
+//    //if (ff->dec_vafp.framebytes > output_buf_len)
+//        //return PJ_ETOOSMALL;
+//
+//    /* Init frame to receive the decoded data, the ps codec context will
+//     * automatically provide the decoded buffer (single buffer used for the
+//     * whole decoding session, and seems to be freed when the codec context
+//     * closed).
+//     */
+//
+//    pj_bzero(&avframe, sizeof(avframe));
+//    av_frame_unref(&avframe);
+//
+//    /* Init packet, the container of the encoded data */
+//    av_init_packet(&avpacket);
+//    avpacket.data = (pj_uint8_t*)input->buf;
+//    avpacket.size = (int)input->size;
+//
+//    /* ps warns:
+//     * - input buffer padding, at least FF_INPUT_BUFFER_PADDING_SIZE
+//     * - null terminated
+//     * Normally, encoded buffer is allocated more than needed, so lets just
+//     * bzero the input buffer end/pad, hope it will be just fine.
+//     */
+//    pj_bzero(avpacket.data+avpacket.size, FF_INPUT_BUFFER_PADDING_SIZE);
+//
+//    output->bit_info = 0;
+//    output->timestamp = input->timestamp;
+//
+//#if LIBAVCODEC_VER_AT_LEAST(52,72)
+//    //avpacket.flags = AV_PKT_FLAG_KEY;
+//#else
+//    avpacket.flags = 0;
+//#endif
+//
+//#if LIBAVCODEC_VER_AT_LEAST(52,72)
+//    err = avcodec_decode_video2(ff->dec_ctx, &avframe,
+//                                &got_picture, &avpacket);
+//#else
+//    err = avcodec_decode_video(ff->dec_ctx, &avframe,
+//                               &got_picture, avpacket.data, avpacket.size);
+//#endif
+//    if (err < 0) {
+//        pjmedia_event event;
+//
+//        output->type = PJMEDIA_FRAME_TYPE_NONE;
+//        output->size = 0;
+//        print_ps_err(err);
+//
+//        /* Broadcast missing keyframe event */
+//        pjmedia_event_init(&event, PJMEDIA_EVENT_KEYFRAME_MISSING,
+//                           &input->timestamp, codec);
+//        pjmedia_event_publish(NULL, codec, &event, 0);
+//
+//        return PJMEDIA_CODEC_EBADBITSTREAM;
+//    } else if (got_picture) {
+//        pjmedia_video_apply_fmt_param *vafp = &ff->dec_vafp;
+//        pj_uint8_t *q = (pj_uint8_t*)output->buf;
+//        unsigned i;
+//        pj_status_t status;
+//
+//        /* Check decoding result, e.g: see if the format got changed,
+//         * keyframe found/missing.
+//         */
+//        status = check_decode_result(codec, &input->timestamp, avframe.key_frame);
+//        if (status != PJ_SUCCESS) {
+//            return status;
+//        }
+//
+//        /* Check provided buffer size */
+//        if (vafp->framebytes > output_buf_len) {
+//            return PJ_ETOOSMALL;
+//        }
+//
+//        /* Get the decoded data */
+//        for (i = 0; i < ff->dec_vfi->plane_cnt; ++i) {
+//            pj_uint8_t *p = avframe.data[i];
+//
+//            /* The decoded data may contain padding */
+//            if (avframe.linesize[i]!=vafp->strides[i]) {
+//                /* Padding exists, copy line by line */
+//                pj_uint8_t *q_end;
+//
+//                q_end = q+vafp->plane_bytes[i];
+//                while(q < q_end) {
+//                    pj_memcpy(q, p, vafp->strides[i]);
+//                    q += vafp->strides[i];
+//                    p += avframe.linesize[i];
+//                }
+//            } else {
+//                /* No padding, copy the whole plane */
+//                pj_memcpy(q, p, vafp->plane_bytes[i]);
+//                q += vafp->plane_bytes[i];
+//            }
+//        }
+//
+//        output->type = PJMEDIA_FRAME_TYPE_VIDEO;
+//        output->size = vafp->framebytes;
+//    } else {
+//        output->type = PJMEDIA_FRAME_TYPE_NONE;
+//        output->size = 0;
+//    }
+//
+//    return PJ_SUCCESS;
+//}
 
 
 
@@ -2064,7 +2064,8 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
     if (ff->whole) {
         // assert not support
         pj_assert(pkt_count==1);
-        return ps_codec_decode_whole(codec, &packets[0], out_size, output);
+//        return ps_codec_decode_whole(codec, &packets[0], out_size, output);
+        return PJ_EINVAL;
     } else {
         pjmedia_frame whole_frm;
 
@@ -2125,22 +2126,22 @@ static pj_status_t ps_codec_decode( pjmedia_vid_codec *codec,
 
             return PJ_SUCCESS;
         } else {
-            status = ps_codec_decode_whole(codec, &whole_frm, out_size, output);
-            if (status != PJ_SUCCESS) {
-                PJ_LOG(3,
-                       (THIS_FILE, "ps_codec_decode_whole err.ts: %d, pkg_count: %d, buf len is %d, expect len: %d, real len: %d",
-                               whole_frm.timestamp.u64, pkt_count, whole_frm.size, ps.total_video_pes_len, ps.dec_data_len));
-            } else {
-                if (ps.is_i_frame) {
-                    PJ_LOG(3,
-                           (THIS_FILE, "Decode key frame success. ts: %d, pkt_cnt: %d, remain len: %d, idx: %d, expect len: %d, real len: %d, beg_seq: %d, end_seq: %d",
-                                   whole_frm.timestamp.u64, pkt_count, ps.remain_buf_len,
-                                   ps.pkt_idx, ps.total_video_pes_len, ps.dec_data_len,
-                                   packets[0].rtp_seq, packets[ps.pkt_idx].rtp_seq));
-                }
-            }
+//            status = ps_codec_decode_whole(codec, &whole_frm, out_size, output);
+//            if (status != PJ_SUCCESS) {
+//                PJ_LOG(3,
+//                       (THIS_FILE, "ps_codec_decode_whole err.ts: %d, pkg_count: %d, buf len is %d, expect len: %d, real len: %d",
+//                               whole_frm.timestamp.u64, pkt_count, whole_frm.size, ps.total_video_pes_len, ps.dec_data_len));
+//            } else {
+//                if (ps.is_i_frame) {
+//                    PJ_LOG(3,
+//                           (THIS_FILE, "Decode key frame success. ts: %d, pkt_cnt: %d, remain len: %d, idx: %d, expect len: %d, real len: %d, beg_seq: %d, end_seq: %d",
+//                                   whole_frm.timestamp.u64, pkt_count, ps.remain_buf_len,
+//                                   ps.pkt_idx, ps.total_video_pes_len, ps.dec_data_len,
+//                                   packets[0].rtp_seq, packets[ps.pkt_idx].rtp_seq));
+//                }
+//            }
         }
-        return status;
+        return PJ_EINVAL;
     }
 }
 
