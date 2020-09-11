@@ -195,6 +195,7 @@ func NewGuaContext(callback interface{}) *GuaContext {
 }
 
 func (gc *GuaContext) Create() error {
+	gc.checkThread()
 	if ret := C.pjsua_create(); ret != C.PJ_SUCCESS {
 		return errors.New(fmt.Sprintf("Create sua error: %d", ret))
 	}
@@ -203,6 +204,7 @@ func (gc *GuaContext) Create() error {
 }
 
 func (gc *GuaContext) SetNullSndDev() error {
+	gc.checkThread()
 	if ret := C.pjsua_set_null_snd_dev(); ret != C.PJ_SUCCESS {
 		return errors.New(fmt.Sprintf("SetNullSndDev error: %d", ret))
 	}
@@ -231,6 +233,7 @@ func (gc *GuaContext) Init(epc *endPointConfig) error {
 		epc = NewEndPointConfig()
 	}
 
+	gc.checkThread()
 	gc.initCallback(epc.Config())
 
 	if ret := C.pjsua_init(epc.Config().c, epc.LogConfig().lc, epc.MediaConfig().mc); ret != C.PJ_SUCCESS {
@@ -263,6 +266,7 @@ func (gc *GuaContext) TransportCreate(typ int, cfg *transportConfig) error {
 		cfg = NewTransportConfig()
 	}
 
+	gc.checkThread()
 	if ret := C.pjsua_transport_create(C.to_pjsip_transport_type_e(C.int(typ)), &cfg.tcfg, &gc.tid); ret != C.PJ_SUCCESS {
 		return errors.New(fmt.Sprintf("Init sua error: %d", ret))
 	}
@@ -271,6 +275,7 @@ func (gc *GuaContext) TransportCreate(typ int, cfg *transportConfig) error {
 }
 
 func (gc *GuaContext) Start() error {
+	gc.checkThread()
 	if ret := C.pjsua_start(); ret != C.PJ_SUCCESS {
 		return errors.New(fmt.Sprintf("Start sua error: %d", ret))
 	}

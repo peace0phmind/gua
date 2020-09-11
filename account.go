@@ -167,6 +167,7 @@ func (ai *AccountInfo) OnlineStatusText() string {
 func (ac *Account) GetInfo() (*AccountInfo, error) {
 	pai := &C.struct_pjsua_acc_info{}
 
+	ac.gc.checkThread()
 	if ret := C.pjsua_acc_get_info(ac.id, pai); ret != C.PJ_SUCCESS {
 		return nil, errors.New(fmt.Sprintf("account get info error: %d", ret))
 	}
@@ -203,7 +204,7 @@ func newCallSetting() *callSetting {
 	return setting
 }
 
-func (cs * callSetting) SetAudioCount(count int) {
+func (cs *callSetting) SetAudioCount(count int) {
 	cs.setting.aud_cnt = C.uint(count)
 }
 
@@ -213,6 +214,7 @@ func (cs *callSetting) SetFlag(flag int) {
 
 func (ac *Account) MakePlay(dstUri string) (*Call, error) {
 
+	ac.gc.checkThread()
 	pj_dst_uri := str2Pj(dstUri)
 
 	call := &Call{}
